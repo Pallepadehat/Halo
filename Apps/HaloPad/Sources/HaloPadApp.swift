@@ -1,9 +1,10 @@
+import HaloCore
 import HaloTransport
 import SwiftUI
 
 @main
 struct HaloPadApp: App {
-    @State private var model = PadModel(link: MacLink(identity: .local(named: UIDevice.current.name)))
+    @State private var model = Self.makeModel()
 
     var body: some Scene {
         WindowGroup {
@@ -19,5 +20,17 @@ struct HaloPadApp: App {
                     model.start()
                 }
         }
+    }
+
+    private static func makeModel() -> PadModel {
+        #if DEBUG
+        // `-HaloDemo [mode]` fills every mode with sample data, no Mac needed.
+        let arguments = ProcessInfo.processInfo.arguments
+        if let flag = arguments.firstIndex(of: "-HaloDemo") {
+            let mode = arguments.dropFirst(flag + 1).first.flatMap(Mode.init(rawValue:)) ?? .zen
+            return .demo(showing: mode)
+        }
+        #endif
+        return PadModel(link: MacLink(identity: .local(named: UIDevice.current.name)))
     }
 }

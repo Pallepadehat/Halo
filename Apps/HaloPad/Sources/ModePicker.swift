@@ -12,7 +12,7 @@ struct ModePicker: View {
                 } label: {
                     Image(systemName: mode.systemImage)
                         .font(.title2)
-                        .foregroundStyle(model.mode == mode ? .primary : .tertiary)
+                        .foregroundStyle(model.mode == mode ? Color.haloInk : Color.haloInk.opacity(0.35))
                         .overlay(alignment: .topTrailing) {
                             if mode == .agents, model.agents.contains(where: \.needsAttention) {
                                 Circle()
@@ -22,8 +22,11 @@ struct ModePicker: View {
                             }
                         }
                         .frame(width: 44, height: 44)
+                        .contentShape(.rect)
                 }
+                .buttonStyle(.plain)
                 .accessibilityLabel(mode.title)
+                .accessibilityAddTraits(model.mode == mode ? .isSelected : [])
             }
         }
         .padding(.vertical, 16)

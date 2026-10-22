@@ -7,8 +7,12 @@ import Observation
 @Observable
 final class PadModel {
     var mode: Mode = .zen
-    private(set) var metrics: SystemMetrics = .empty
+    private(set) var pulse = MetricsHistory()
     private(set) var agents: [AgentSession] = []
+
+    var metrics: SystemMetrics {
+        pulse.latest ?? .empty
+    }
 
     let link: MacLink
     @ObservationIgnored private let suggester = ModeSuggester()
@@ -16,7 +20,10 @@ final class PadModel {
     init(link: MacLink) {
         self.link = link
         link.onMessage = { [weak self] message in self?.apply(message) }
-        link.onDisconnect = { [weak self] in self?.agents = [] }
+        link.onDisconnect = { [weak self] in
+            self?.agents = []
+            self?.pulse = MetricsHistory()
+        }
     }
 
     func start() {
@@ -31,8 +38,10 @@ final class PadModel {
         switch message {
         case .hello:
             break
-        case .metrics(let metrics):
-            self.metrics = metrics
+        case .metrics(let sample):
+            pulse.append(sample)
+        case .metricsHistory(let samples):
+            pulse.replace(with: samples)
         case .agents(let sessions):
             let previous = agents
             agents = sessions
@@ -42,3 +51,15 @@ final class PadModel {
         }
     }
 }
+
+#if DEBUG
+extension PadModel {
+    static func demo(showing mode: Mode = .zen) -> PadModel {
+        let model = PadModel(link: .demo())
+        model.apply(.metricsHistory(DemoData.metricsHistory()))
+        model.apply(.agents(DemoData.agents()))
+        model.mode = mode
+        return model
+    }
+}
+#endif

@@ -15,7 +15,8 @@ struct StatusStrip: View {
             Spacer()
             Text("CPU \(model.metrics.cpu, format: .percent.precision(.fractionLength(0)))")
             Text("RAM \(model.metrics.memory, format: .percent.precision(.fractionLength(0)))")
-            Text(model.metrics.freeStorageBytes, format: .byteCount(style: .file))
+            Text("\(model.metrics.freeStorageBytes, format: .byteCount(style: .file)) free")
+            Text("↓ \(model.metrics.networkBytesInPerSecond, format: .byteCount(style: .file))/s")
         }
         .font(.footnote.monospacedDigit())
         .foregroundStyle(.secondary)

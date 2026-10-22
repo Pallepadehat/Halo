@@ -181,3 +181,17 @@ final class MacLink {
         return await withCheckedContinuation { pendingAnswer = $0 }
     }
 }
+
+#if DEBUG
+extension MacLink {
+    /// A link that looks connected and never touches the network or the real Keychain.
+    static func demo() -> MacLink {
+        let link = MacLink(
+            identity: DeviceIdentity(id: UUID(), name: "Demo iPad"),
+            store: KeychainPairedDeviceStore(service: "app.halo.demo")
+        )
+        link.status = .connected(DemoData.mac)
+        return link
+    }
+}
+#endif
