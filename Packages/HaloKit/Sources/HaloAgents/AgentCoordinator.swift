@@ -8,8 +8,10 @@ public actor AgentCoordinator {
     /// Every change to the session list, newest first. Single consumer.
     public nonisolated let sessionUpdates: AsyncStream<[AgentSession]>
 
+    public static let defaultApprovalWindow: Duration = .seconds(90)
+
     /// How long a permission request waits for an answer from Halo before the agent falls
-    /// back to its own prompt. `nil` never waits. Keep this below the installed hook timeout.
+    /// back to its own prompt. `nil` never waits. Must stay below `HookConfiguration.approvalTimeout`.
     public var approvalWindow: Duration?
 
     private let adapters: [AgentTool: any AgentAdapter]
@@ -17,7 +19,7 @@ public actor AgentCoordinator {
     private var store = AgentSessionStore()
     private var pendingDecisions: [ApprovalRequest.ID: CheckedContinuation<ApprovalDecision?, Never>] = [:]
 
-    public init(adapters: [any AgentAdapter] = .all, approvalWindow: Duration? = .seconds(90)) {
+    public init(adapters: [any AgentAdapter] = .all, approvalWindow: Duration? = defaultApprovalWindow) {
         self.adapters = Dictionary(adapters.map { ($0.tool, $0) }, uniquingKeysWith: { _, last in last })
         self.approvalWindow = approvalWindow
         (sessionUpdates, updatesContinuation) = AsyncStream.makeStream(bufferingPolicy: .bufferingNewest(1))

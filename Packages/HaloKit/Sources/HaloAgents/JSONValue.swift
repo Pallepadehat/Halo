@@ -38,9 +38,14 @@ public enum JSONValue: Codable, Sendable, Hashable {
         }
     }
 
+    /// Object member access. Assigning turns a non-object into an object; assigning `nil` removes the key.
     public subscript(key: String) -> JSONValue? {
-        guard case .object(let object) = self else { return nil }
-        return object[key]
+        get { objectValue?[key] }
+        set {
+            var object = objectValue ?? [:]
+            object[key] = newValue
+            self = .object(object)
+        }
     }
 
     public var stringValue: String? {
