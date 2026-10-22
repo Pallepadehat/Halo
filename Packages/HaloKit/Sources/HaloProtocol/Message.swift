@@ -7,6 +7,8 @@ public let haloProtocolVersion = 1
 public enum MacMessage: Codable, Sendable, Equatable {
     case hello(macName: String, protocolVersion: Int)
     case metrics(SystemMetrics)
+    /// Sent on connect so Pulse's sparklines start full.
+    case metricsHistory([SystemMetrics])
     case agents([AgentSession])
 }
 
