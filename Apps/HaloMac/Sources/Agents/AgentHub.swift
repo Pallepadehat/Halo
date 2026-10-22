@@ -45,7 +45,7 @@ final class AgentHub {
         }
 
         do {
-            let server = try HookBridgeServer { [coordinator] in await coordinator.handle($0) }
+            let server = HookBridgeServer { [coordinator] in await coordinator.handle($0) }
             try server.start()
             self.server = server
         } catch {

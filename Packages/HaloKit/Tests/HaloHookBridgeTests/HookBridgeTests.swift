@@ -11,12 +11,11 @@ import HaloCore
 
     @Test func relaysInvocationAndReply() async throws {
         let socket = temporarySocket()
-        let server = try HookBridgeServer(socket: socket) { invocation in
+        let server = HookBridgeServer(socket: socket) { invocation in
             HookReply(output: Data("\(invocation.tool.rawValue):\(invocation.payload.count)".utf8))
         }
         try server.start()
         defer { server.stop() }
-        try await Task.sleep(for: .milliseconds(100))
 
         let payload = Data(#"{"hook_event_name":"Stop"}"#.utf8)
         let reply = try await Task.detached {
@@ -28,12 +27,33 @@ import HaloCore
 
     @Test func socketDirectoryIsOwnerOnly() async throws {
         let socket = temporarySocket()
-        let server = try HookBridgeServer(socket: socket) { _ in .passThrough }
+        let server = HookBridgeServer(socket: socket) { _ in .passThrough }
         try server.start()
         defer { server.stop() }
 
         let attributes = try FileManager.default.attributesOfItem(atPath: socket.deletingLastPathComponent().path)
         #expect(attributes[.posixPermissions] as? Int == 0o700)
+    }
+
+    @Test func servesConcurrentInvocationsIndependently() async throws {
+        let socket = temporarySocket()
+        let server = HookBridgeServer(socket: socket) { invocation in
+            // The first call blocks like a pending approval; the second must not wait for it.
+            if invocation.tool == .claudeCode { try? await Task.sleep(for: .seconds(2)) }
+            return HookReply(output: Data(invocation.tool.rawValue.utf8))
+        }
+        try server.start()
+        defer { server.stop() }
+
+        let slow = Task.detached { try HookBridgeClient.send(HookInvocation(tool: .claudeCode, payload: Data()), to: socket) }
+        let started = ContinuousClock.now
+        let fast = try await Task.detached {
+            try HookBridgeClient.send(HookInvocation(tool: .cursor, payload: Data()), to: socket)
+        }.value
+
+        #expect(String(decoding: fast.output, as: UTF8.self) == "cursor")
+        #expect(ContinuousClock.now - started < .seconds(1))
+        _ = try await slow.value
     }
 
     @Test func failsFastWhenHelperIsNotRunning() {
