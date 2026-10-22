@@ -3,7 +3,7 @@ import Network
 import Synchronization
 
 /// A `MessageChannel` over an `NWConnection`: each message is a 4-byte big-endian length
-/// followed by its JSON encoding.
+/// followed by its JSON encoding. Cancelling a task that's opening or reading closes it.
 public final class NetworkChannel: MessageChannel {
     /// Agent payloads are small; anything bigger than this is a bug or an attack.
     public static let maximumFrameSize = 1 << 20
@@ -78,19 +78,24 @@ public final class NetworkChannel: MessageChannel {
         connection.cancel()
     }
 
+    /// Cancelling the reading task closes the channel: a half-read frame can't be resumed anyway.
     private func receive(exactly count: Int) async throws -> Data {
         guard count > 0 else { return Data() }
-        return try await withCheckedThrowingContinuation { continuation in
-            connection.receive(minimumIncompleteLength: count, maximumLength: count) { content, _, _, error in
-                if let error {
-                    continuation.resume(throwing: error)
-                } else if let content, content.count == count {
-                    continuation.resume(returning: content)
-                } else {
-                    // The peer closed (or half-closed) mid-frame or between frames.
-                    continuation.resume(throwing: ChannelError.closed)
+        return try await withTaskCancellationHandler {
+            try await withCheckedThrowingContinuation { continuation in
+                connection.receive(minimumIncompleteLength: count, maximumLength: count) { content, _, _, error in
+                    if let error {
+                        continuation.resume(throwing: error)
+                    } else if let content, content.count == count {
+                        continuation.resume(returning: content)
+                    } else {
+                        // The peer closed (or half-closed) mid-frame or between frames.
+                        continuation.resume(throwing: ChannelError.closed)
+                    }
                 }
             }
+        } onCancel: { [connection] in
+            connection.cancel()
         }
     }
 }
