@@ -1,0 +1,96 @@
+name: Halo
+options:
+  bundleIdPrefix: dk.patrickjak.halo
+  createIntermediateGroups: true
+  deploymentTarget:
+    iOS: "18.0"
+    macOS: "15.0"
+
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+    SWIFT_STRICT_CONCURRENCY: complete
+    MARKETING_VERSION: "0.1.0"
+    CURRENT_PROJECT_VERSION: "1"
+    DEVELOPMENT_TEAM: ""
+
+packages:
+  HaloKit:
+    path: Packages/HaloKit
+
+targets:
+  HaloPad:
+    type: application
+    platform: iOS
+    sources:
+      - Apps/HaloPad/Sources
+    dependencies:
+      - package: HaloKit
+        product: HaloCore
+      - package: HaloKit
+        product: HaloProtocol
+    info:
+      path: Apps/HaloPad/Resources/Info.plist
+      properties:
+        CFBundleDisplayName: Halo
+        UILaunchScreen: {}
+        UIRequiresFullScreen: true
+        UISupportedInterfaceOrientations~ipad:
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationPortraitUpsideDown
+        UIApplicationSceneManifest:
+          UIApplicationSupportsMultipleScenes: false
+        NSLocalNetworkUsageDescription: Halo connects to the Halo helper on your Mac over the local network.
+        NSBonjourServices:
+          - _halo._tcp
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: dk.patrickjak.halo.pad
+        PRODUCT_NAME: Halo
+        TARGETED_DEVICE_FAMILY: "2"
+        GENERATE_INFOPLIST_FILE: true
+
+  HaloMac:
+    type: application
+    platform: macOS
+    sources:
+      - Apps/HaloMac/Sources
+    dependencies:
+      - package: HaloKit
+        product: HaloCore
+      - package: HaloKit
+        product: HaloProtocol
+    info:
+      path: Apps/HaloMac/Resources/Info.plist
+      properties:
+        CFBundleDisplayName: Halo Helper
+        LSUIElement: true
+        NSLocalNetworkUsageDescription: Halo Helper talks to your paired iPad over the local network.
+        NSBonjourServices:
+          - _halo._tcp
+    entitlements:
+      path: Apps/HaloMac/Resources/HaloMac.entitlements
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: dk.patrickjak.halo.mac
+        PRODUCT_NAME: Halo Helper
+        ENABLE_HARDENED_RUNTIME: true
+        # Not sandboxed: Trackpad needs Accessibility (CGEvent posting). Ships as a notarised direct download.
+        ENABLE_APP_SANDBOX: false
+        GENERATE_INFOPLIST_FILE: true
+
+schemes:
+  HaloPad:
+    build:
+      targets:
+        HaloPad: all
+    test:
+      targets:
+        - package: HaloKit/HaloCoreTests
+        - package: HaloKit/HaloProtocolTests
+  HaloMac:
+    build:
+      targets:
+        HaloMac: all
