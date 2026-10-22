@@ -16,10 +16,17 @@ struct HelloView: View {
 
     var body: some View {
         VStack(spacing: 8) {
-            HelloShape()
-                .trim(from: 0, to: progress)
-                .stroke(Self.ink, style: StrokeStyle(lineWidth: 11, lineCap: .round, lineJoin: .round))
-                .shadow(color: .white.opacity(0.25), radius: 18)
+            // Written in Liquid Glass, with Apple's colours running through it.
+            Color.clear
+                .glassEffect(.regular, in: HelloStroke(progress: progress))
+                .overlay {
+                    HelloStroke(progress: progress)
+                        .fill(Self.ink)
+                        .opacity(0.55)
+                        .blendMode(.plusLighter)
+                        .allowsHitTesting(false)
+                }
+                .shadow(color: .white.opacity(0.18), radius: 18)
                 .aspectRatio(1, contentMode: .fit)
                 .frame(maxWidth: 620)
                 // The glyph sits in the middle of its square; pull the hint up beneath it.
@@ -47,5 +54,23 @@ struct HelloView: View {
         isShowingHint = false
         withAnimation(.easeInOut(duration: 3.2)) { progress = 1 }
         withAnimation(.smooth(duration: 0.8).delay(2.8)) { isShowingHint = true }
+    }
+}
+
+/// The hello's stroke as a fillable outline, so it can be cut from glass. Its width follows the
+/// glyph's size, and `progress` writes it in.
+private struct HelloStroke: Shape {
+    var progress: Double
+
+    var animatableData: Double {
+        get { progress }
+        set { progress = newValue }
+    }
+
+    func path(in rect: CGRect) -> Path {
+        HelloShape()
+            .trim(from: 0, to: progress)
+            .path(in: rect)
+            .strokedPath(StrokeStyle(lineWidth: rect.width * 0.026, lineCap: .round, lineJoin: .round))
     }
 }

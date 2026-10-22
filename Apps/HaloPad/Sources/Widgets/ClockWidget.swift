@@ -1,7 +1,7 @@
 import HaloCore
 import SwiftUI
 
-/// The time in SF at its thinnest, the date above, and what's next on the calendar below.
+/// The time in Liquid Glass, the date above, and what's next on the calendar below.
 struct ClockWidget: View {
     @Environment(PadModel.self) private var model
 
@@ -13,12 +13,15 @@ struct ClockWidget: View {
                         .font(.system(size: max(13, geometry.size.height * 0.07), weight: .regular))
                         .foregroundStyle(.inkSecondary)
 
-                    Text(context.date, format: .dateTime.hour(.twoDigits(amPM: .omitted)).minute(.twoDigits))
-                        .font(.hero(min(geometry.size.height * 0.62, geometry.size.width * 0.3)))
-                        .foregroundStyle(.ink)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.3)
-                        .contentTransition(.numericText())
+                    // Cut from Liquid Glass, like the Lock Screen's clock.
+                    GlassText(
+                        text: context.date.formatted(.dateTime.hour(.twoDigits(amPM: .omitted)).minute(.twoDigits)),
+                        size: min(geometry.size.height * 0.62, geometry.size.width * 0.3),
+                        weight: .light,
+                        // A white tint keeps it readable from across the desk, over any backdrop.
+                        glass: .regular.tint(.white.opacity(0.35))
+                    )
+                    .padding(.vertical, geometry.size.height * 0.04)
 
                     if let event = model.upNext, geometry.size.height > 220 {
                         UpNextPill(event: event, now: context.date)
