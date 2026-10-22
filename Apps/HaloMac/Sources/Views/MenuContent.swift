@@ -20,10 +20,14 @@ struct MenuContent: View {
             Divider()
             IntegrationsSection()
             Divider()
-            Button("Quit Halo") { NSApplication.shared.terminate(nil) }
-                .keyboardShortcut("q")
-                .buttonStyle(.plain)
-                .foregroundStyle(.secondary)
+            HStack {
+                Button("Check for Updates…") { Updates.shared.checkNow() }
+                Spacer()
+                Button("Quit Halo") { NSApplication.shared.terminate(nil) }
+                    .keyboardShortcut("q")
+            }
+            .buttonStyle(.plain)
+            .foregroundStyle(.secondary)
         }
         .padding(14)
         .frame(width: 340)

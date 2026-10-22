@@ -17,9 +17,11 @@
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
-	<string>1.0</string>
+	<string>$(MARKETING_VERSION)</string>
 	<key>CFBundleVersion</key>
-	<string>1</string>
+	<string>$(CURRENT_PROJECT_VERSION)</string>
+	<key>LSApplicationCategoryType</key>
+	<string>public.app-category.productivity</string>
 	<key>LSUIElement</key>
 	<true/>
 	<key>NSAppleEventsUsageDescription</key>
@@ -31,7 +33,17 @@
 	</array>
 	<key>NSCalendarsFullAccessUsageDescription</key>
 	<string>Halo shows your next event beside the clock on your iPad.</string>
+	<key>NSHumanReadableCopyright</key>
+	<string>Copyright © 2026 Patrick Jakobsen. MIT License.</string>
 	<key>NSLocalNetworkUsageDescription</key>
 	<string>Halo Helper talks to your paired iPad over the local network.</string>
+	<key>SUEnableAutomaticChecks</key>
+	<true/>
+	<key>SUFeedURL</key>
+	<string>https://github.com/Pallepadehat/Halo/releases/latest/download/appcast.xml</string>
+	<key>SUPublicEDKey</key>
+	<string>mHeNSUPTLt12nikqiH5D0uBl7MAlnOd8ZaennsPfpLo=</string>
+	<key>SUScheduledCheckInterval</key>
+	<integer>86400</integer>
 </dict>
 </plist>

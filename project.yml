@@ -11,7 +11,8 @@ settings:
     SWIFT_VERSION: "6.0"
     SWIFT_STRICT_CONCURRENCY: complete
     MARKETING_VERSION: "0.1.0"
-    CURRENT_PROJECT_VERSION: "1"
+    # Sparkle compares build numbers, so they go up with the version.
+    CURRENT_PROJECT_VERSION: "$(MARKETING_VERSION)"
     # Every target must be signed by a real team: macOS keys Local Network permission to the
     # code signature, and an ad-hoc signed helper is refused Bonjour (-65555 NoAuth).
     DEVELOPMENT_TEAM: 537P4FPMZ4
@@ -20,6 +21,10 @@ settings:
 packages:
   HaloKit:
     path: Packages/HaloKit
+  # Updates for the Mac helper: finds new releases on GitHub and installs them.
+  Sparkle:
+    url: https://github.com/sparkle-project/Sparkle
+    from: 2.9.0
 
 targets:
   HaloPad:
@@ -84,6 +89,7 @@ targets:
         product: HaloInput
       - package: HaloKit
         product: HaloDesktop
+      - package: Sparkle
       # Ships at Contents/MacOS/halo-hook, next to the helper's own executable.
       - target: HaloHook
         embed: true
@@ -94,7 +100,17 @@ targets:
       path: Apps/HaloMac/Resources/Info.plist
       properties:
         CFBundleDisplayName: Halo Helper
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         LSUIElement: true
+        LSApplicationCategoryType: public.app-category.productivity
+        NSHumanReadableCopyright: Copyright © 2026 Patrick Jakobsen. MIT License.
+        # Where Sparkle looks for new versions: the appcast attached to the latest GitHub release.
+        SUFeedURL: https://github.com/Pallepadehat/Halo/releases/latest/download/appcast.xml
+        # The public half of the key releases are signed with (the private half is in the maintainer's keychain).
+        SUPublicEDKey: mHeNSUPTLt12nikqiH5D0uBl7MAlnOd8ZaennsPfpLo=
+        SUEnableAutomaticChecks: true
+        SUScheduledCheckInterval: 86400
         NSAppleEventsUsageDescription: Halo shows what Music and Spotify are playing on your iPad and lets you control them from there.
         NSCalendarsFullAccessUsageDescription: Halo shows your next event beside the clock on your iPad.
         NSLocalNetworkUsageDescription: Halo Helper talks to your paired iPad over the local network.

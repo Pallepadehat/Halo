@@ -56,6 +56,7 @@ final class Helper {
             }
         }
 
+        Updates.shared.start()
         agents.start()
         pads.start()
         trackpad.start()
