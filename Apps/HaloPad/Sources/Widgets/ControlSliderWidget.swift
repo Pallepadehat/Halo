@@ -55,6 +55,8 @@ struct ControlSliderWidget: View {
                 Rectangle()
                     .fill(.ink)
                     .frame(height: geometry.size.height * (value ?? 0))
+                    // Under a finger the fill tracks exactly; changes from the Mac ease in.
+                    .animation(dragStart == nil ? .smooth(duration: 0.25) : nil, value: value)
             }
             .clipShape(.rect(cornerRadius: radius, style: .continuous))
             .glassEffect(.regular, in: .rect(cornerRadius: radius, style: .continuous))

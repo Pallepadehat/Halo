@@ -139,26 +139,39 @@ private struct WidgetContainer: View {
     }
 }
 
-/// The Home Screen jiggle: a continuous, tiny rotation, out of phase per widget so the page
-/// feels alive rather than mechanical. Time-driven, so it never stalls or snaps, and the
-/// widget's own view keeps its identity when editing starts and stops.
+/// The Home Screen jiggle: a tiny rotation flipping back and forth, out of phase per widget.
+///
+/// A single repeating Core Animation on the rotation alone, scoped so nothing else inherits it.
+/// The render server plays it, so widgets (and their Liquid Glass) aren't redrawn every frame,
+/// and starting or stopping it never disturbs their layout.
 private struct Wiggle: ViewModifier {
     let isActive: Bool
     let seed: Int
 
-    /// About three wobbles a second, a little under a degree each way, as on the Home Screen.
-    private static let frequency = 3.1
-    private static let amplitude = 0.75
+    /// A little under a degree each way, about three and a half wobbles a second.
+    private static let amplitude = 0.8
+    private static let halfPeriod = 0.14
+
+    @State private var isTilted = false
 
     func body(content: Content) -> some View {
-        TimelineView(.animation(paused: !isActive)) { context in
-            let phase = Double(abs(seed) % 997) / 997 * 2 * .pi
-            let speed = Self.frequency * (0.92 + Double(abs(seed) % 7) * 0.025)
-            let angle = sin(context.date.timeIntervalSinceReferenceDate * 2 * .pi * speed + phase)
-            content
-                .rotationEffect(.degrees(isActive ? angle * Self.amplitude : 0))
-                .animation(.easeOut(duration: 0.2), value: isActive)
-        }
+        content
+            .animation(isActive ? .easeInOut(duration: duration).repeatForever(autoreverses: true) : .easeOut(duration: 0.18)) { view in
+                view.rotationEffect(.degrees(isActive ? (isTilted ? Self.amplitude : -Self.amplitude) : 0))
+            }
+            .task(id: isActive) {
+                guard isActive else {
+                    isTilted = false
+                    return
+                }
+                // Stagger the start so neighbouring widgets never move in lockstep.
+                try? await Task.sleep(for: .milliseconds(abs(seed) % 140))
+                isTilted = true
+            }
+    }
+
+    private var duration: Double {
+        Self.halfPeriod * (0.9 + Double(abs(seed) % 9) * 0.025)
     }
 }
 

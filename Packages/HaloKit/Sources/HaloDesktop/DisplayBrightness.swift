@@ -2,7 +2,7 @@
 import AppKit
 import CoreGraphics
 
-/// Display brightness for whichever display the person is looking at.
+/// One brightness for every connected display, so a desk of mixed monitors dims together.
 ///
 /// Built-in and Apple displays are dimmed properly, through DisplayServices (the private
 /// framework Control Center uses; there's no public API). Any other display is dimmed in
@@ -21,23 +21,25 @@ public enum DisplayBrightness {
 
     private static var softwareLevels: [CGDirectDisplayID: Double] = [:]
 
+    /// The main display's brightness stands for all of them; the name says when it's several.
     public static func current() -> State {
-        let display = CGMainDisplayID()
-        if let level = Hardware.brightness(of: display) {
-            return State(brightness: level, displayName: name(of: display), isSoftware: false)
-        }
-        reapplySoftwareLevelIfReset(on: display)
-        let level = softwareLevels[display] ?? 1
-        return State(brightness: sliderValue(forSoftwareLevel: level), displayName: name(of: display), isSoftware: true)
+        let displays = activeDisplays()
+        displays.forEach(reapplySoftwareLevelIfReset)
+        let main = CGMainDisplayID()
+        let isSoftware = Hardware.brightness(of: main) == nil
+        let value = Hardware.brightness(of: main) ?? sliderValue(forSoftwareLevel: softwareLevels[main] ?? 1)
+        let name = displays.count > 1 ? String(localized: "All Displays") : name(of: main)
+        return State(brightness: value, displayName: name, isSoftware: isSoftware)
     }
 
     public static func setBrightness(_ value: Double) {
-        let display = CGMainDisplayID()
         let value = min(max(value, 0), 1)
-        if Hardware.canChange(display) {
-            Hardware.setBrightness(value, of: display)
-        } else {
-            setSoftwareLevel(softwareLevel(for: value), on: display)
+        for display in activeDisplays() {
+            if Hardware.canChange(display) {
+                Hardware.setBrightness(value, of: display)
+            } else {
+                setSoftwareLevel(softwareLevel(for: value), on: display)
+            }
         }
     }
 
@@ -62,11 +64,22 @@ public enum DisplayBrightness {
     private static func setSoftwareLevel(_ level: Double, on display: CGDirectDisplayID) {
         if level >= 0.999 {
             softwareLevels[display] = nil
+            // Restoring resets every display's gamma, so re-apply any that are still dimmed.
             CGDisplayRestoreColorSyncSettings()
+            softwareLevels.forEach { applyGamma($0.value, on: $0.key) }
             return
         }
         softwareLevels[display] = level
         applyGamma(level, on: display)
+    }
+
+    private static func activeDisplays() -> [CGDirectDisplayID] {
+        var count: UInt32 = 0
+        guard CGGetActiveDisplayList(0, nil, &count) == .success, count > 0 else { return [] }
+        var displays = [CGDirectDisplayID](repeating: 0, count: Int(count))
+        guard CGGetActiveDisplayList(count, &displays, &count) == .success else { return [] }
+        // Mirrored displays share a picture; dim each physical panel once.
+        return displays.prefix(Int(count)).filter { CGDisplayMirrorsDisplay($0) == kCGNullDirectDisplay }
     }
 
     /// macOS resets gamma on sleep, wake and display changes; put ours back if it went.

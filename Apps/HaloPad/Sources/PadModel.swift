@@ -42,6 +42,11 @@ final class PadModel {
     let link: MacLink
     @ObservationIgnored private let volumeThrottle = Throttle(interval: .milliseconds(50))
     @ObservationIgnored private let brightnessThrottle = Throttle(interval: .milliseconds(50))
+    /// While a finger adjusts a slider, and briefly after, the person's value wins over the
+    /// Mac's echo, which always trails a few messages behind and would yank the slider back.
+    @ObservationIgnored private var volumeHeldUntil = ContinuousClock.Instant.now
+    @ObservationIgnored private var brightnessHeldUntil = ContinuousClock.Instant.now
+    private static let adjustmentHold: Duration = .milliseconds(1200)
 
     init(link: MacLink) {
         self.link = link
@@ -82,11 +87,14 @@ final class PadModel {
     /// Slider drags fire every frame; the Mac only needs a value every 50 ms, plus the last one.
     func setVolume(_ volume: Double) {
         controls.volume = volume
+        controls.isMuted = false
+        volumeHeldUntil = .now + Self.adjustmentHold
         volumeThrottle.submit { [link] in link.send(.setVolume(volume)) }
     }
 
     func setBrightness(_ brightness: Double) {
         controls.brightness = brightness
+        brightnessHeldUntil = .now + Self.adjustmentHold
         brightnessThrottle.submit { [link] in link.send(.setBrightness(brightness)) }
     }
 
@@ -117,7 +125,14 @@ final class PadModel {
         case .artwork(let trackID, let jpeg):
             if let image = UIImage(data: jpeg) { artwork = (trackID, image) }
         case .controls(let state):
-            controls = state
+            var merged = state
+            let now = ContinuousClock.now
+            if now < volumeHeldUntil {
+                merged.volume = controls.volume
+                merged.isMuted = controls.isMuted
+            }
+            if now < brightnessHeldUntil { merged.brightness = controls.brightness }
+            controls = merged
         case .deck(let actions):
             deck = actions
         case .upNext(let event):
