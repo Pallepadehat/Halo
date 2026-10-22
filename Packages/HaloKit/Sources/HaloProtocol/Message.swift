@@ -12,7 +12,7 @@ public enum MacMessage: Codable, Sendable, Equatable {
 
 /// iPad → Mac helper.
 public enum PadMessage: Codable, Sendable, Equatable {
-    case hello(deviceName: String, protocolVersion: Int)
+    case hello(deviceID: UUID, deviceName: String, protocolVersion: Int)
     case pointer(PointerEvent)
     case resolveApproval(id: ApprovalRequest.ID, decision: ApprovalDecision)
     case agentAction(sessionID: AgentSession.ID, action: AgentAction)
