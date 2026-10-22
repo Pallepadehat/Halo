@@ -6,6 +6,12 @@ struct MenuContent: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
+            if Helper.isSandboxed {
+                Label("This build of Halo Helper is sandboxed, so pairing, Trackpad and agent hooks can't work. Turn off App Sandbox in project.yml and rebuild.", systemImage: "exclamationmark.octagon")
+                    .foregroundStyle(.red)
+                    .fixedSize(horizontal: false, vertical: true)
+                Divider()
+            }
             SessionsSection(sessions: agents.sessions)
             Divider()
             PadsSection()

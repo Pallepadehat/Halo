@@ -12,6 +12,10 @@ final class Helper {
     let pads = PadLink(identity: .local(named: Host.current().localizedName ?? String(localized: "Mac")))
     let trackpad = TrackpadAccess()
 
+    /// The helper can't work sandboxed (see project.yml). Surfaced in the menu so a stray
+    /// Signing & Capabilities change is obvious instead of breaking pairing silently.
+    static let isSandboxed = ProcessInfo.processInfo.environment["APP_SANDBOX_CONTAINER_ID"] != nil
+
     private let input = InputInjector()
     /// Kept even with no iPad connected, so Pulse opens with ten minutes of history.
     private var pulse = MetricsHistory()
@@ -46,6 +50,10 @@ final class Helper {
         agents.start()
         pads.start()
         trackpad.start()
+        #if DEBUG
+        // `-HaloBeginPairing` opens the pairing window at launch, for testing without the menu.
+        if ProcessInfo.processInfo.arguments.contains("-HaloBeginPairing") { pads.beginPairing() }
+        #endif
         sampling = Task { [unowned self] in
             for await sample in MetricsMonitor.samples() {
                 pulse.append(sample)

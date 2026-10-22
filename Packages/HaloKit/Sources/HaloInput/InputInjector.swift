@@ -127,9 +127,10 @@ public final class InputInjector: Sendable {
         CGEvent(source: nil)?.location ?? .zero
     }
 
-    /// The person's System Settings › Trackpad › Natural scrolling choice.
+    /// The person's System Settings › Trackpad › Natural scrolling choice. The standard
+    /// defaults search list already includes the global domain, where this lives.
     private static var prefersNaturalScrolling: Bool {
-        UserDefaults(suiteName: UserDefaults.globalDomain)?.object(forKey: "com.apple.swipescrolldirection") as? Bool ?? true
+        UserDefaults.standard.object(forKey: "com.apple.swipescrolldirection") as? Bool ?? true
     }
 
     /// Fingers moving left reveal the space to the right, as on a Magic Trackpad.

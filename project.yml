@@ -101,9 +101,20 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: dk.patrickjak.halo.mac
         PRODUCT_NAME: Halo Helper
         ENABLE_HARDENED_RUNTIME: true
-        # Not sandboxed: Trackpad needs Accessibility (CGEvent posting). Ships as a notarised direct download.
+        # Never sandboxed, and don't add App Sandbox under Signing & Capabilities: it blocks
+        # Bonjour (-65555 NoAuth), input posting, process sampling and agent hook installation.
+        # Halo.xcodeproj is generated from this file, so edits made in Xcode are lost anyway.
+        # Ships as a notarised direct download, never through the Mac App Store.
         ENABLE_APP_SANDBOX: false
         GENERATE_INFOPLIST_FILE: true
+      configs:
+        # Debug builds install to ~/Applications. mDNSResponder only trusts NSBonjourServices
+        # from apps in a standard location; run from DerivedData, Bonjour fails with NoAuth.
+        Debug:
+          DEPLOYMENT_LOCATION: true
+          DSTROOT: $(HOME)/Applications
+          INSTALL_PATH: /
+          SKIP_INSTALL: false
 
   HaloHook:
     type: tool
