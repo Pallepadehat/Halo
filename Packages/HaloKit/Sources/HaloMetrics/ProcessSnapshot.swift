@@ -38,8 +38,8 @@ struct ProcessSnapshot: Equatable {
     }
 }
 
-/// Reads every process this user can see. Other users' processes (and the kernel) are skipped:
-/// without root, `proc_pidinfo` won't describe them.
+/// Reads this user's processes. Others' (root daemons, the kernel) are never asked about:
+/// without root, `proc_pidinfo` can't describe them and the system logs a warning for each try.
 struct ProcessReader {
     private var names: [pid_t: String] = [:]
 
@@ -47,7 +47,7 @@ struct ProcessReader {
         var snapshot = ProcessSnapshot()
         var seen: Set<pid_t> = []
 
-        for pid in Self.allPIDs() {
+        for pid in Self.ownPIDs() {
             var info = proc_taskinfo()
             let size = Int32(MemoryLayout<proc_taskinfo>.size)
             guard proc_pidinfo(pid, PROC_PIDTASKINFO, 0, &info, size) == size, let name = name(of: pid) else { continue }
@@ -70,13 +70,18 @@ struct ProcessReader {
         return name
     }
 
-    private static func allPIDs() -> [pid_t] {
-        let estimate = proc_listallpids(nil, 0)
-        guard estimate > 0 else { return [] }
+    private static func ownPIDs() -> [pid_t] {
+        var mib: [Int32] = [CTL_KERN, KERN_PROC, KERN_PROC_UID, Int32(getuid())]
+        var byteCount = 0
+        guard sysctl(&mib, UInt32(mib.count), nil, &byteCount, nil, 0) == 0 else { return [] }
+
         // Leave headroom for processes spawned between the two calls.
-        var pids = [pid_t](repeating: 0, count: Int(estimate) + 64)
-        let count = proc_listallpids(&pids, Int32(pids.count * MemoryLayout<pid_t>.size))
-        return pids.prefix(Int(max(0, count))).filter { $0 > 0 }
+        let stride = MemoryLayout<kinfo_proc>.stride
+        var processes = [kinfo_proc](repeating: kinfo_proc(), count: byteCount / stride + 32)
+        byteCount = processes.count * stride
+        guard sysctl(&mib, UInt32(mib.count), &processes, &byteCount, nil, 0) == 0 else { return [] }
+
+        return processes.prefix(byteCount / stride).map(\.kp_proc.p_pid).filter { $0 > 0 }
     }
 }
 
