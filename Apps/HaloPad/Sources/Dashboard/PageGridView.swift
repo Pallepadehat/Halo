@@ -13,6 +13,8 @@ struct PageGridView: View {
     var body: some View {
         GeometryReader { proxy in
             let geometry = GridGeometry(bounds: proxy.size)
+            // One container for the page's glass, so it renders together rather than per widget.
+            GlassEffectContainer(spacing: geometry.spacing) {
             ZStack(alignment: .topLeading) {
                 Color.clear
                     .contentShape(.rect)
@@ -42,6 +44,7 @@ struct PageGridView: View {
                 }
             }
             .animation(.spring(duration: 0.4, bounce: 0.15), value: page.widgets)
+            }
         }
     }
 }

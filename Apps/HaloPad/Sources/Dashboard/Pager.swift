@@ -11,6 +11,8 @@ struct Pager<Content: View>: View {
     @ViewBuilder let content: (DashboardPage) -> Content
 
     @GestureState private var dragOffset: CGFloat = 0
+    /// The page we've come to rest on. Until the slide finishes, the neighbours stay built.
+    @State private var settledIndex: Int?
 
     var body: some View {
         GeometryReader { geometry in
@@ -18,9 +20,11 @@ struct Pager<Content: View>: View {
             let index = pages.firstIndex { $0.id == selection } ?? 0
             HStack(spacing: 0) {
                 ForEach(Array(pages.enumerated()), id: \.element.id) { position, page in
-                    // Only neighbours are built; distant pages cost nothing.
+                    // At rest only the current page is alive; while swiping or sliding, its
+                    // neighbours are built too. Everything else costs nothing.
+                    let isMoving = dragOffset != 0 || settledIndex != index
                     Group {
-                        if abs(position - index) <= 1 { content(page) } else { Color.clear }
+                        if position == index || (isMoving && abs(position - index) == 1) { content(page) } else { Color.clear }
                     }
                     .frame(width: width, height: geometry.size.height)
                 }
@@ -44,6 +48,11 @@ struct Pager<Content: View>: View {
             )
         }
         .clipped()
+        .task(id: selection) {
+            // Matches the page slide in DashboardView; then let the neighbours go.
+            try? await Task.sleep(for: .milliseconds(550))
+            settledIndex = pages.firstIndex { $0.id == selection }
+        }
     }
 
     /// Rubber-bands past the first and last page, like every Apple pager.

@@ -68,16 +68,31 @@ private struct BlurredLayer: View {
             }
         }
         .task(id: source.id) {
-            blurred = await BackdropBlur.blurred(source.image)
+            blurred = await BackdropBlur.blurred(source.image, id: source.id)
         }
     }
 }
 
 /// Blurs once, off the main actor, at a small size. The result is scaled up for display, so
-/// the per-frame drift costs a texture transform rather than a live blur.
+/// the per-frame drift costs a texture transform rather than a live blur. Results are cached,
+/// so every backdrop showing the same picture (a page, the gallery) shares one blur.
 enum BackdropBlur {
+    @MainActor private static let cache: NSCache<NSString, UIImage> = {
+        let cache = NSCache<NSString, UIImage>()
+        cache.countLimit = 6
+        return cache
+    }()
+
+    @MainActor
+    static func blurred(_ image: UIImage, id: String) async -> UIImage? {
+        if let cached = cache.object(forKey: id as NSString) { return cached }
+        guard let result = await blurred(image) else { return nil }
+        cache.setObject(result, forKey: id as NSString)
+        return result
+    }
+
     @concurrent
-    static func blurred(_ image: UIImage) async -> UIImage? {
+    private static func blurred(_ image: UIImage) async -> UIImage? {
         guard let input = CIImage(image: image) else { return nil }
         let scale = 320 / max(input.extent.width, input.extent.height)
         let small = input.transformed(by: CGAffineTransform(scaleX: scale, y: scale))
