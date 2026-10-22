@@ -6,6 +6,11 @@ public struct PairingProposal: Sendable, Equatable {
     public let peer: DeviceIdentity
     public let verificationCode: String
 
+    public init(peer: DeviceIdentity, verificationCode: String) {
+        self.peer = peer
+        self.verificationCode = verificationCode
+    }
+
     /// `"048 213"`: two groups of three read faster from arm's length than six in a row.
     public var displayCode: String {
         "\(verificationCode.prefix(3)) \(verificationCode.suffix(3))"

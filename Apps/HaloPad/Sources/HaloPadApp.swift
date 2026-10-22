@@ -51,6 +51,10 @@ struct HaloPadApp: App {
         #if DEBUG
         // `-HaloDemo [page]` fills every widget with sample data, no Mac needed.
         let arguments = ProcessInfo.processInfo.arguments
+        if let flag = arguments.firstIndex(of: "-HaloDemoPairing") {
+            let step = arguments.dropFirst(flag + 1).first ?? "searching"
+            return (PadModel(link: .demoPairing(step)), DashboardStore(file: nil, fallback: .empty))
+        }
         if let flag = arguments.firstIndex(of: "-HaloDemo") {
             let page = arguments.dropFirst(flag + 1).first.flatMap(Int.init) ?? 0
             let store = DashboardStore(file: nil, fallback: arguments.contains("-HaloDemoEmpty") ? .empty : .showcase)
@@ -60,6 +64,7 @@ struct HaloPadApp: App {
             return (DemoData.model(), store)
         }
         #endif
+        MacLink.forgetPairingsFromAnEarlierInstall()
         return (PadModel(link: MacLink(identity: .local(named: UIDevice.current.name))), DashboardStore())
     }
 }
@@ -69,13 +74,13 @@ struct RootView: View {
 
     var body: some View {
         Group {
-            if link.status == .unpaired {
+            if link.needsPairing {
                 PairingView()
             } else {
                 DashboardView()
             }
         }
-        .animation(.halo, value: link.status == .unpaired)
+        .animation(.halo, value: link.needsPairing)
     }
 }
 
