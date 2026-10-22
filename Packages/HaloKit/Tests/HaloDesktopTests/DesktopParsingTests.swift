@@ -90,3 +90,17 @@ import HaloCore
         #expect(next?.title == "Standup")
     }
 }
+
+@Suite struct SoftwareDimmingTests {
+    @Test func theBottomOfTheSliderIsDimNotBlack() {
+        #expect(DisplayBrightness.softwareLevel(for: 0) == DisplayBrightness.softwareFloor)
+        #expect(DisplayBrightness.softwareLevel(for: 1) == 1)
+    }
+
+    @Test func sliderAndLevelRoundTrip() {
+        for value in stride(from: 0.0, through: 1.0, by: 0.25) {
+            let level = DisplayBrightness.softwareLevel(for: value)
+            #expect(abs(DisplayBrightness.sliderValue(forSoftwareLevel: level) - value) < 1e-9)
+        }
+    }
+}

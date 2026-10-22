@@ -81,13 +81,23 @@ public struct SystemControls: Codable, Sendable, Hashable {
     public var outputName: String?
     public var brightness: Double?
     public var displayName: String?
+    /// The display has no brightness control of its own, so Halo dims it in software.
+    public var isBrightnessSoftware: Bool
 
-    public init(volume: Double?, isMuted: Bool, outputName: String?, brightness: Double?, displayName: String?) {
+    public init(
+        volume: Double?,
+        isMuted: Bool,
+        outputName: String?,
+        brightness: Double?,
+        displayName: String?,
+        isBrightnessSoftware: Bool = false
+    ) {
         self.volume = volume
         self.isMuted = isMuted
         self.outputName = outputName
         self.brightness = brightness
         self.displayName = displayName
+        self.isBrightnessSoftware = isBrightnessSoftware
     }
 
     public static let unavailable = SystemControls(volume: nil, isMuted: false, outputName: nil, brightness: nil, displayName: nil)

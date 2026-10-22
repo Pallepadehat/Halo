@@ -1,4 +1,4 @@
-import Foundation
+import AppKit
 import HaloCore
 import HaloDesktop
 import HaloProtocol
@@ -30,6 +30,10 @@ final class DesktopFeed {
     private var loops: [Task<Void, Never>] = []
 
     func start() {
+        // Software dimming lives in the display's gamma; never leave it behind.
+        NotificationCenter.default.addObserver(forName: NSApplication.willTerminateNotification, object: nil, queue: .main) { _ in
+            MainActor.assumeIsolated { DisplayBrightness.restoreSoftwareDimming() }
+        }
         upNext.onChange { [weak self] in self?.refreshCalendar() }
         loops = [
             Task { [weak self] in
@@ -105,7 +109,7 @@ final class DesktopFeed {
         let display = DisplayBrightness.current()
         let current = SystemControls(
             volume: audio.volume, isMuted: audio.isMuted, outputName: audio.deviceName,
-            brightness: display.brightness, displayName: display.displayName
+            brightness: display.brightness, displayName: display.displayName, isBrightnessSoftware: display.isSoftware
         )
         guard current != controls else { return }
         controls = current

@@ -5,7 +5,9 @@ import HaloCore
 /// Reads and drives Music and Spotify through their AppleScript dictionaries, the one
 /// supported way to talk to both. The system asks for Automation consent per app, once.
 ///
-/// Scripts check `is running` first, so polling never launches a player.
+/// A script is only ever compiled for a player that's running. Merely *compiling* one that
+/// names an app makes macOS look it up, which asks "Where is Spotify?" if it isn't installed,
+/// and can launch it if it is.
 @MainActor
 public final class MediaController {
     private var lastActive: MediaSource?
@@ -14,7 +16,7 @@ public final class MediaController {
 
     /// Whichever player is playing, else the one that played last, else whichever has a track.
     public func nowPlaying() -> NowPlaying? {
-        let reports = MediaSource.allCases.compactMap(read)
+        let reports = MediaSource.allCases.filter(\.isRunning).compactMap(read)
         let chosen = reports.first(where: \.isPlaying)
             ?? reports.first { $0.source == lastActive }
             ?? reports.first
@@ -23,17 +25,20 @@ public final class MediaController {
     }
 
     public func perform(_ command: MediaCommand, on source: MediaSource?) {
-        let source = source ?? lastActive ?? .music
+        guard let source = [source, lastActive].compactMap(\.self).first(where: \.isRunning)
+            ?? MediaSource.allCases.first(where: \.isRunning)
+        else { return }
         let verb = switch command {
         case .playPause: "playpause"
         case .next: "next track"
         case .previous: "previous track"
         }
-        run("if application \"\(source.applicationName)\" is running then tell application \"\(source.applicationName)\" to \(verb)")
+        run("tell application \"\(source.applicationName)\" to \(verb)")
     }
 
     /// The current track's artwork as a small JPEG, for the backdrop and the widget.
     public func artwork(for track: NowPlaying) async -> Data? {
+        guard track.source.isRunning else { return nil }
         switch track.source {
         case .music:
             let data = run("""
@@ -90,6 +95,18 @@ enum NowPlayingParser {
 }
 
 private extension MediaSource {
+    var bundleIdentifier: String {
+        switch self {
+        case .music: "com.apple.Music"
+        case .spotify: "com.spotify.client"
+        }
+    }
+
+    /// Asked of the system directly, never through AppleScript.
+    var isRunning: Bool {
+        !NSRunningApplication.runningApplications(withBundleIdentifier: bundleIdentifier).isEmpty
+    }
+
     var applicationName: String {
         switch self {
         case .music: "Music"
@@ -100,17 +117,14 @@ private extension MediaSource {
     var statusScript: String {
         let trackID = self == .music ? "persistent ID of t" : "id of t"
         return """
-        if application "\(applicationName)" is running then
-            tell application "\(applicationName)"
-                with timeout of 1 second
-                    set s to player state as string
-                    if s is "stopped" then return {s}
-                    set t to current track
-                    return {s, (\(trackID)) as string, name of t, artist of t, album of t, (duration of t) as string, (player position) as string}
-                end timeout
-            end tell
-        end if
-        return {}
+        tell application "\(applicationName)"
+            with timeout of 1 second
+                set s to player state as string
+                if s is "stopped" then return {s}
+                set t to current track
+                return {s, (\(trackID)) as string, name of t, artist of t, album of t, (duration of t) as string, (player position) as string}
+            end timeout
+        end tell
         """
     }
 }
