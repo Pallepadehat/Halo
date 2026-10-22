@@ -70,6 +70,8 @@ targets:
         product: HaloHookBridge
       - package: HaloKit
         product: HaloTransport
+      - package: HaloKit
+        product: HaloMetrics
       # Ships at Contents/MacOS/halo-hook, next to the helper's own executable.
       - target: HaloHook
         embed: true
@@ -130,3 +132,4 @@ schemes:
       targets:
         - package: HaloKit/HaloHookBridgeTests
         - package: HaloKit/HaloAgentsTests
+        - package: HaloKit/HaloMetricsTests
