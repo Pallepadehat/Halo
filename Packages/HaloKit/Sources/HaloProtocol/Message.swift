@@ -1,7 +1,8 @@
 import Foundation
 import HaloCore
 
-public let haloProtocolVersion = 1
+/// Bump on any wire change: devices refuse peers that speak a different version.
+public let haloProtocolVersion = 2
 
 /// Mac helper → iPad.
 public enum MacMessage: Codable, Sendable, Equatable {
@@ -10,26 +11,20 @@ public enum MacMessage: Codable, Sendable, Equatable {
     /// Sent on connect so Pulse's sparklines start full.
     case metricsHistory([SystemMetrics])
     case agents([AgentSession])
+    /// Whether the helper may move the pointer (it needs Accessibility permission).
+    case trackpadAvailability(isAvailable: Bool)
+    /// Answers `PadMessage.ping` immediately, on the same path pointer events take.
+    case pong(id: UInt32)
 }
 
 /// iPad → Mac helper.
 public enum PadMessage: Codable, Sendable, Equatable {
     case hello(deviceID: UUID, deviceName: String, protocolVersion: Int)
     case pointer(PointerEvent)
+    case ping(id: UInt32)
     case resolveApproval(id: ApprovalRequest.ID, decision: ApprovalDecision)
     case agentAction(sessionID: AgentSession.ID, action: AgentAction)
     case runAction(id: String)
-}
-
-public enum PointerEvent: Codable, Sendable, Equatable {
-    case move(dx: Double, dy: Double)
-    case scroll(dx: Double, dy: Double)
-    case click(button: MouseButton)
-    case gesture(String)
-}
-
-public enum MouseButton: String, Codable, Sendable {
-    case left, right
 }
 
 public enum AgentAction: Codable, Sendable, Equatable {
