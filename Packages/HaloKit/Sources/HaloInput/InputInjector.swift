@@ -145,21 +145,28 @@ public final class InputInjector: Sendable {
 }
 
 /// A key press with modifiers, e.g. ⌃→.
-struct KeyChord {
+public struct KeyChord: Sendable {
     /// Virtual key codes from `Carbon.HIToolbox.Events`.
-    enum Key: CGKeyCode {
+    public enum Key: CGKeyCode, Sendable {
         case minus = 0x1B
         case equals = 0x18
         case leftArrow = 0x7B
         case rightArrow = 0x7C
         case downArrow = 0x7D
         case upArrow = 0x7E
+        case q = 0x0C
+        case five = 0x17
     }
 
-    let key: Key
-    let flags: CGEventFlags
+    public let key: Key
+    public let flags: CGEventFlags
 
-    func post() {
+    public init(key: Key, flags: CGEventFlags) {
+        self.key = key
+        self.flags = flags
+    }
+
+    public func post() {
         for isDown in [true, false] {
             let event = CGEvent(keyboardEventSource: nil, virtualKey: key.rawValue, keyDown: isDown)
             event?.flags = flags

@@ -17,6 +17,7 @@ let package = Package(
         .library(name: "HaloTrackpad", targets: ["HaloTrackpad"]),
         .library(name: "HaloInput", targets: ["HaloInput"]),
         .library(name: "HaloDashboard", targets: ["HaloDashboard"]),
+        .library(name: "HaloDesktop", targets: ["HaloDesktop"]),
     ],
     targets: [
         .target(name: "HaloCore"),
@@ -28,6 +29,7 @@ let package = Package(
         .target(name: "HaloTrackpad", dependencies: ["HaloProtocol"]),
         .target(name: "HaloInput", dependencies: ["HaloProtocol"]),
         .target(name: "HaloDashboard"),
+        .target(name: "HaloDesktop", dependencies: ["HaloCore", "HaloInput"]),
         .testTarget(name: "HaloCoreTests", dependencies: ["HaloCore"]),
         .testTarget(name: "HaloProtocolTests", dependencies: ["HaloProtocol"]),
         .testTarget(name: "HaloHookBridgeTests", dependencies: ["HaloHookBridge"]),
@@ -37,5 +39,6 @@ let package = Package(
         .testTarget(name: "HaloTrackpadTests", dependencies: ["HaloTrackpad"]),
         .testTarget(name: "HaloInputTests", dependencies: ["HaloInput"]),
         .testTarget(name: "HaloDashboardTests", dependencies: ["HaloDashboard"]),
+        .testTarget(name: "HaloDesktopTests", dependencies: ["HaloDesktop"]),
     ]
 )
