@@ -22,11 +22,15 @@
 	<string>1</string>
 	<key>LSUIElement</key>
 	<true/>
+	<key>NSAppleEventsUsageDescription</key>
+	<string>Halo shows what Music and Spotify are playing on your iPad and lets you control them from there.</string>
 	<key>NSBonjourServices</key>
 	<array>
 		<string>_halo._tcp</string>
 		<string>_halo-pair._tcp</string>
 	</array>
+	<key>NSCalendarsFullAccessUsageDescription</key>
+	<string>Halo shows your next event beside the clock on your iPad.</string>
 	<key>NSLocalNetworkUsageDescription</key>
 	<string>Halo Helper talks to your paired iPad over the local network.</string>
 </dict>

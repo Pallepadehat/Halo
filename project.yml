@@ -79,6 +79,8 @@ targets:
         product: HaloMetrics
       - package: HaloKit
         product: HaloInput
+      - package: HaloKit
+        product: HaloDesktop
       # Ships at Contents/MacOS/halo-hook, next to the helper's own executable.
       - target: HaloHook
         embed: true
@@ -90,6 +92,8 @@ targets:
       properties:
         CFBundleDisplayName: Halo Helper
         LSUIElement: true
+        NSAppleEventsUsageDescription: Halo shows what Music and Spotify are playing on your iPad and lets you control them from there.
+        NSCalendarsFullAccessUsageDescription: Halo shows your next event beside the clock on your iPad.
         NSLocalNetworkUsageDescription: Halo Helper talks to your paired iPad over the local network.
         NSBonjourServices:
           - _halo._tcp
@@ -153,3 +157,4 @@ schemes:
         - package: HaloKit/HaloAgentsTests
         - package: HaloKit/HaloMetricsTests
         - package: HaloKit/HaloInputTests
+        - package: HaloKit/HaloDesktopTests

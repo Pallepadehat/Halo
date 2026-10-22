@@ -17,6 +17,7 @@ final class Helper {
     static let isSandboxed = ProcessInfo.processInfo.environment["APP_SANDBOX_CONTAINER_ID"] != nil
 
     private let input = InputInjector()
+    private let desktop = DesktopFeed()
     /// Kept even with no iPad connected, so Pulse opens with ten minutes of history.
     private var pulse = MetricsHistory()
     private var sampling: Task<Void, Never>?
@@ -28,28 +29,34 @@ final class Helper {
         trackpad.onChange = { [pads] isGranted in
             pads.broadcast(.trackpadAvailability(isAvailable: isGranted))
         }
+        desktop.broadcast = { [pads] message in
+            pads.broadcast(message)
+        }
+        desktop.hasListeners = { [pads] in
+            !pads.connectedPads.isEmpty
+        }
         pads.snapshot = { [unowned self] in
             [
                 .agents(agents.sessions),
                 .metricsHistory(pulse.samples),
                 .trackpadAvailability(isAvailable: trackpad.isGranted),
-            ]
+            ] + desktop.snapshot
         }
         pads.onPointer = { [input] event in
             input.play(event)
         }
-        pads.onMessage = { [agents] message in
-            switch message {
-            case .resolveApproval(let id, let decision):
+        pads.onMessage = { [agents, desktop] message in
+            if case .resolveApproval(let id, let decision) = message {
                 agents.resolve(id, with: decision)
-            case .hello, .pointer, .ping, .agentAction, .runAction:
-                break
+            } else {
+                _ = desktop.handle(message)
             }
         }
 
         agents.start()
         pads.start()
         trackpad.start()
+        desktop.start()
         #if DEBUG
         // `-HaloBeginPairing` opens the pairing window at launch, for testing without the menu.
         if ProcessInfo.processInfo.arguments.contains("-HaloBeginPairing") { pads.beginPairing() }
