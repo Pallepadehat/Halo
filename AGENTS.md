@@ -34,6 +34,7 @@ Halo/
 │       ├── Sources/HaloProtocol/    iPad ⇄ Mac wire messages (MacMessage, PadMessage)
 │       ├── Sources/HaloHookBridge/  halo-hook ⇄ helper Unix socket (client, server, paths)
 │       ├── Sources/HaloAgents/      tool adapters, AgentSessionStore, AgentCoordinator, HookInstaller
+│       ├── Sources/HaloTransport/   pairing, encrypted channels, Bonjour discovery, Keychain pairings
 │       └── Tests/
 └── docs/
     ├── PRD.md
@@ -69,6 +70,15 @@ Agent tools call `halo-hook <tool>` from their hook config. It relays stdin over
 - Never gate a tool call Halo can't answer properly. Tools without a "needs approval" hook ship read-only.
 - `HookInstaller` edits the user's real config files. Keep edits idempotent and surgical, and never overwrite a file it can't parse.
 - When testing locally, the helper repoints `~/Library/Application Support/Halo/bin/halo-hook` at whichever build launched last.
+
+## iPad ⇄ Mac link
+
+- **Pairing** (`PairingSession`) is Bluetooth-style numeric comparison over X25519: the responder commits to its nonce first, both screens show a 6-digit code, and *both* people confirm. The pairing service (`_halo-pair._tcp`) is only advertised while the Mac's pairing window is open.
+- **Paired links** (`_halo._tcp`) use TLS 1.2 `ECDHE_PSK_WITH_CHACHA20_POLY1305`, keyed by each pairing's 256-bit secret. Network.framework has no external-PSK TLS 1.3, so don't "upgrade" this without testing. Unpaired devices fail the handshake.
+- **Pairings** live in the Keychain (`KeychainPairedDeviceStore`), this device only. Never log or persist secrets anywhere else.
+- **Framing:** `NetworkChannel` sends length-prefixed JSON frames. Send through `MessageOutbox` from synchronous code so messages keep their order. Cancelling a reading task closes the channel.
+- The Mac sends a `snapshot()` to every new connection so iPads start in sync. The iPad keeps no state the Mac doesn't own.
+- `ModeSuggester` is edge-triggered: it reacts when an agent *starts* needing you.
 
 ## Tech conventions
 
