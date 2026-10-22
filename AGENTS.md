@@ -24,16 +24,20 @@ Halo/
 │   ├── HaloPad/           ← iPad app (SwiftUI)
 │   │   ├── Sources/
 │   │   └── Resources/
-│   └── HaloMac/           ← Mac helper (SwiftUI MenuBarExtra, LSUIElement)
-│       ├── Sources/
-│       └── Resources/
+│   ├── HaloMac/           ← Mac helper (SwiftUI MenuBarExtra, LSUIElement)
+│   │   ├── Sources/
+│   │   └── Resources/
+│   └── HaloHook/          ← `halo-hook` CLI, embedded in the helper at Contents/MacOS
 ├── Packages/
-│   └── HaloKit/           ← shared Swift package used by both apps
-│       ├── Sources/HaloCore/      models (Mode, SystemMetrics, AgentSession), ModeSuggester
-│       ├── Sources/HaloProtocol/  wire messages (MacMessage, PadMessage), coding, service type
+│   └── HaloKit/           ← shared Swift package used by the apps
+│       ├── Sources/HaloCore/        models (Mode, SystemMetrics, AgentSession, ApprovalRequest), ModeSuggester
+│       ├── Sources/HaloProtocol/    iPad ⇄ Mac wire messages (MacMessage, PadMessage)
+│       ├── Sources/HaloHookBridge/  halo-hook ⇄ helper Unix socket (client, server, paths)
+│       ├── Sources/HaloAgents/      tool adapters, AgentSessionStore, AgentCoordinator, HookInstaller
 │       └── Tests/
 └── docs/
-    └── PRD.md
+    ├── PRD.md
+    └── spikes/            ← research write-ups (e.g. agent-adapters.md)
 ```
 
 Rule of thumb: if both apps need it, it goes in `Packages/HaloKit`. Platform-specific code (AppKit, CGEvent, IOKit, UIKit) stays in the app. New shared areas (e.g. `HaloTransport`, `HaloAgents`) become new targets in `HaloKit`, not new top-level folders.
@@ -55,6 +59,16 @@ xcodebuild -project Halo.xcodeproj -scheme HaloMac build
 ```
 
 Always run `xcodegen generate` after adding files — the `.xcodeproj` is not committed and will not pick them up otherwise. Never edit `project.pbxproj` directly; change `project.yml`.
+
+## Agents pipeline
+
+Agent tools call `halo-hook <tool>` from their hook config. It relays stdin over a Unix socket to the helper's `AgentCoordinator`, which goes adapter → `AgentEvent` → `AgentSessionStore`. Permission requests are held open for `AgentCoordinator.defaultApprovalWindow`. See `docs/spikes/agent-adapters.md` for each tool's protocol.
+
+- `halo-hook` stays logic-free and **must fail open**: if anything goes wrong, it prints nothing and exits 0.
+- A new tool gets a new `AgentAdapter` plus a `HookConfiguration.for(_:)` case, and tests built from the tool's documented payloads.
+- Never gate a tool call Halo can't answer properly. Tools without a "needs approval" hook ship read-only.
+- `HookInstaller` edits the user's real config files. Keep edits idempotent and surgical, and never overwrite a file it can't parse.
+- When testing locally, the helper repoints `~/Library/Application Support/Halo/bin/halo-hook` at whichever build launched last.
 
 ## Tech conventions
 
