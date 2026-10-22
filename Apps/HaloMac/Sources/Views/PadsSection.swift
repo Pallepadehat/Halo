@@ -7,6 +7,9 @@ struct PadsSection: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             SectionHeader("iPad")
+            if pads.isLocalNetworkDenied, case .idle = pads.pairing {
+                LocalNetworkDenied()
+            }
             switch pads.pairing {
             case .idle:
                 PairedPadsList()
@@ -81,6 +84,29 @@ private struct PairingFailed: View {
     var body: some View {
         Text(message)
             .foregroundStyle(.red)
-        Button("OK") { pads.dismissPairingFailure() }
+            .fixedSize(horizontal: false, vertical: true)
+        HStack {
+            if pads.isLocalNetworkDenied { OpenLocalNetworkSettings() }
+            Spacer()
+            Button("OK") { pads.dismissPairingFailure() }
+        }
+    }
+}
+
+private struct LocalNetworkDenied: View {
+    var body: some View {
+        Label("iPads can't find this Mac until Halo Helper is allowed on the local network.", systemImage: "exclamationmark.triangle")
+            .foregroundStyle(.orange)
+            .fixedSize(horizontal: false, vertical: true)
+        OpenLocalNetworkSettings()
+    }
+}
+
+private struct OpenLocalNetworkSettings: View {
+    @Environment(\.openURL) private var openURL
+    private static let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_LocalNetwork")!
+
+    var body: some View {
+        Button("Open Local Network Settings…") { openURL(Self.url) }
     }
 }

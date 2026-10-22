@@ -6,7 +6,7 @@ struct StatusStrip: View {
 
     var body: some View {
         HStack(spacing: 24) {
-            ConnectionLabel(status: link.status)
+            ConnectionLabel(status: link.status, isLocalNetworkDenied: link.isLocalNetworkDenied)
                 .contextMenu {
                     Button("Forget This Mac", systemImage: "xmark.circle", role: .destructive) {
                         link.forgetMac()
@@ -27,9 +27,13 @@ struct StatusStrip: View {
 
 private struct ConnectionLabel: View {
     let status: MacLink.Status
+    let isLocalNetworkDenied: Bool
 
     var body: some View {
         switch status {
+        case .searching where isLocalNetworkDenied:
+            Label("Allow Local Network for Halo in Settings", systemImage: "exclamationmark.triangle")
+                .foregroundStyle(.haloAttention)
         case .connected(let mac):
             Label(mac.name, systemImage: "laptopcomputer")
         case .searching(let mac):

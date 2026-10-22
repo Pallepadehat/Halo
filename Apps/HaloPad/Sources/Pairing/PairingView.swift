@@ -38,6 +38,8 @@ struct PairingView: View {
             ConfirmCode(proposal: proposal)
         case .failed(let message):
             PairingFailed(message: message)
+        case .localNetworkDenied:
+            LocalNetworkDenied()
         }
     }
 }
@@ -95,6 +97,23 @@ private struct ConfirmCode: View {
                     .buttonStyle(.borderedProminent)
             }
             .controlSize(.extraLarge)
+        }
+    }
+}
+
+private struct LocalNetworkDenied: View {
+    @Environment(\.openURL) private var openURL
+
+    var body: some View {
+        VStack(spacing: 20) {
+            Text("Halo needs Local Network access to find your Mac.")
+                .multilineTextAlignment(.center)
+                .foregroundStyle(.secondary)
+            Button("Open Settings") {
+                openURL(URL(string: UIApplication.openSettingsURLString)!)
+            }
+            .buttonStyle(.borderedProminent)
+            .controlSize(.large)
         }
     }
 }

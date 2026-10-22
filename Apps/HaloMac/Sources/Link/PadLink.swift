@@ -23,6 +23,8 @@ final class PadLink {
     private(set) var pairedPads: [DeviceIdentity] = []
     private(set) var connectedPads: Set<DeviceIdentity.ID> = []
     private(set) var pairing: PairingState = .idle
+    /// Local Network access is off, so iPads can't find this Mac. Cleared by the next successful listen.
+    private(set) var isLocalNetworkDenied = false
 
     /// Messages every iPad receives right after connecting, so it starts in sync.
     @ObservationIgnored var snapshot: () -> [MacMessage] = { [] }
@@ -94,7 +96,9 @@ final class PadLink {
             Task {
                 do {
                     try await listener.start()
+                    isLocalNetworkDenied = false
                 } catch {
+                    isLocalNetworkDenied = error.isLocalNetworkDenied
                     Self.log.error("Paired listener failed: \(error, privacy: .public)")
                     return
                 }
@@ -140,6 +144,7 @@ final class PadLink {
     /// Opens the pairing service until an iPad pairs, someone cancels, or the window lapses.
     func beginPairing() {
         guard pairingTask == nil else { return }
+        if isLocalNetworkDenied { restartListener() }
         pairing = .waitingForPad
         pairingTask = Task {
             await withTaskGroup(of: Void.self) { group in
@@ -173,6 +178,7 @@ final class PadLink {
             let listener = try HaloListener(advertising: HaloService.pairingType, as: identity, using: HaloNetworkParameters.pairing())
             defer { listener.cancel() }
             try await listener.start()
+            isLocalNetworkDenied = false
 
             for await channel in listener.connections {
                 defer { channel.close() }
@@ -187,6 +193,7 @@ final class PadLink {
         } catch is CancellationError {
             return
         } catch {
+            isLocalNetworkDenied = error.isLocalNetworkDenied
             if pairing != .idle { pairing = .failed(PairingFailure.message(for: error)) }
         }
     }

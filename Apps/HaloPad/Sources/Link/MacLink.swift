@@ -22,6 +22,8 @@ final class MacLink {
         case connecting(DeviceIdentity)
         case confirming(PairingProposal)
         case failed(String)
+        /// The iPad can't browse until Local Network access is allowed in Settings.
+        case localNetworkDenied
     }
 
     /// Pause between reconnect attempts, so a Mac that's asleep doesn't cost battery.
@@ -30,6 +32,8 @@ final class MacLink {
     let identity: DeviceIdentity
     private(set) var status: Status = .unpaired
     private(set) var pairing: PairingState = .idle
+    /// Local Network access is off, so the paired Mac can't be found.
+    private(set) var isLocalNetworkDenied = false
 
     @ObservationIgnored var onMessage: (MacMessage) -> Void = { _ in }
     @ObservationIgnored var onDisconnect: () -> Void = {}
@@ -92,8 +96,14 @@ final class MacLink {
         let browser = HaloBrowser(type: HaloService.pairedType)
         browser.start()
         defer { browser.cancel() }
-        for await macs in browser.results {
-            if let found = macs.first(where: { $0.id == mac.id }) { return found.endpoint }
+        for await update in browser.updates {
+            switch update {
+            case .found(let macs):
+                isLocalNetworkDenied = false
+                if let found = macs.first(where: { $0.id == mac.id }) { return found.endpoint }
+            case .localNetworkDenied:
+                isLocalNetworkDenied = true
+            }
         }
         return nil
     }
@@ -134,8 +144,12 @@ final class MacLink {
             let browser = HaloBrowser(type: HaloService.pairingType)
             browser.start()
             defer { browser.cancel() }
-            for await macs in browser.results {
-                if case .browsing = pairing { pairing = .browsing(macs) }
+            for await update in browser.updates {
+                guard pairing.isLookingForMacs else { continue }
+                switch update {
+                case .found(let macs): pairing = .browsing(macs)
+                case .localNetworkDenied: pairing = .localNetworkDenied
+                }
             }
         }
     }
@@ -179,6 +193,15 @@ final class MacLink {
     private func askToConfirm(_ proposal: PairingProposal) async -> Bool {
         pairing = .confirming(proposal)
         return await withCheckedContinuation { pendingAnswer = $0 }
+    }
+}
+
+private extension MacLink.PairingState {
+    var isLookingForMacs: Bool {
+        switch self {
+        case .browsing, .localNetworkDenied: true
+        default: false
+        }
     }
 }
 
