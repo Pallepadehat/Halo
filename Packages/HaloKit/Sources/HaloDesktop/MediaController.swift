@@ -11,8 +11,30 @@ import HaloCore
 @MainActor
 public final class MediaController {
     private var lastActive: MediaSource?
+    private var askedForConsent: Set<MediaSource> = []
 
     public init() {}
+
+    /// Asks for Automation consent the first time each player is seen running, so the system
+    /// prompt appears cleanly instead of a poll failing silently. Off the main actor: the call
+    /// blocks until the person answers.
+    public func requestConsentForRunningPlayers() {
+        for source in MediaSource.allCases where source.isRunning && !askedForConsent.contains(source) {
+            askedForConsent.insert(source)
+            Task.detached(priority: .utility) { _ = Self.determineConsent(for: source.bundleIdentifier, prompting: true) }
+        }
+    }
+
+    /// `noErr` when allowed, `errAEEventNotPermitted` when refused, `errAEEventWouldRequireUserConsent` when not yet asked.
+    nonisolated static func determineConsent(for bundleIdentifier: String, prompting: Bool) -> OSStatus {
+        var target = AEAddressDesc()
+        let status = bundleIdentifier.withCString { identifier in
+            AECreateDesc(typeApplicationBundleID, identifier, strlen(identifier), &target)
+        }
+        guard status == noErr else { return OSStatus(status) }
+        defer { AEDisposeDesc(&target) }
+        return AEDeterminePermissionToAutomateTarget(&target, typeWildCard, typeWildCard, prompting)
+    }
 
     /// Whichever player is playing, else the one that played last, else whichever has a track.
     public func nowPlaying() -> NowPlaying? {
@@ -94,7 +116,7 @@ enum NowPlayingParser {
     }
 }
 
-private extension MediaSource {
+extension MediaSource {
     var bundleIdentifier: String {
         switch self {
         case .music: "com.apple.Music"
@@ -103,10 +125,13 @@ private extension MediaSource {
     }
 
     /// Asked of the system directly, never through AppleScript.
-    var isRunning: Bool {
+    public var isRunning: Bool {
         !NSRunningApplication.runningApplications(withBundleIdentifier: bundleIdentifier).isEmpty
     }
 
+}
+
+private extension MediaSource {
     var applicationName: String {
         switch self {
         case .music: "Music"

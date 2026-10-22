@@ -91,6 +91,7 @@ final class DesktopFeed {
     // MARK: - Refreshing
 
     private func refreshMedia() {
+        media.requestConsentForRunningPlayers()
         let current = media.nowPlaying()
         guard current.differsMeaningfully(from: nowPlaying) else { return }
         nowPlaying = current

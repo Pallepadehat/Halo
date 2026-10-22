@@ -101,8 +101,13 @@ targets:
         NSBonjourServices:
           - _halo._tcp
           - _halo-pair._tcp
+    # Declared here, not in the file: xcodegen regenerates the file from these on every run.
+    # Hardened Runtime exceptions only; the helper is never sandboxed (see below).
     entitlements:
       path: Apps/HaloMac/Resources/HaloMac.entitlements
+      properties:
+        com.apple.security.automation.apple-events: true
+        com.apple.security.personal-information.calendars: true
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: dk.patrickjak.halo.mac
