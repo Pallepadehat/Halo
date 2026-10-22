@@ -41,6 +41,7 @@ struct PageGridView: View {
                     }
                     .frame(width: rect.width, height: rect.height)
                     .offset(x: rect.minX, y: rect.minY)
+                    .transition(.scale(scale: 0.85).combined(with: .opacity))
                 }
             }
             .animation(.spring(duration: 0.4, bounce: 0.15), value: page.widgets)
@@ -63,6 +64,8 @@ private struct WidgetContainer: View {
 
     private var shape: RoundedRectangle { RoundedRectangle(cornerRadius: WidgetCard.cornerRadius, style: .continuous) }
 
+    @State private var isConfirmingRemoval = false
+
     var body: some View {
         WidgetView(widget: widget)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -72,29 +75,43 @@ private struct WidgetContainer: View {
                     shape.fill(.white.opacity(0.05)).strokeBorder(.white.opacity(0.22), lineWidth: 1)
                 }
             }
+            // The widget's own tap target comes first, so the corner controls always sit above it.
+            .overlay {
+                if store.isEditing, widget.kind.isConfigurable {
+                    Color.clear
+                        .contentShape(.rect)
+                        .onTapGesture { store.configuringWidgetID = widget.id }
+                        .accessibilityElement()
+                        .accessibilityAddTraits(.isButton)
+                        .accessibilityLabel("Edit \(widget.kind.title)")
+                }
+            }
             .overlay(alignment: .topLeading) {
                 if store.isEditing {
-                    RemoveButton { store.remove(widget.id) }
-                        .offset(x: -10, y: -10)
-                        .transition(.scale.combined(with: .opacity))
+                    RemoveButton(title: widget.kind.title) { isConfirmingRemoval = true }
+                        .offset(x: -12, y: -12)
+                        .transition(.scale(scale: 0.4).combined(with: .opacity))
+                        .confirmationDialog("Remove “\(widget.kind.title)”?", isPresented: $isConfirmingRemoval, titleVisibility: .visible) {
+                            Button("Remove Widget", role: .destructive, action: remove)
+                        } message: {
+                            Text("Removing this widget won't change anything on your Mac.")
+                        }
                 }
             }
             .overlay(alignment: .bottomTrailing) {
                 if store.isEditing, widget.kind.families.count > 1 {
                     ResizeHandle()
-                        .offset(x: 6, y: 6)
+                        .offset(x: 8, y: 8)
                         .gesture(resize)
-                        .transition(.scale.combined(with: .opacity))
+                        .transition(.scale(scale: 0.4).combined(with: .opacity))
                 }
             }
-            .overlay {
-                // Tap a widget with settings while editing to open them, as on the Home Screen.
-                if store.isEditing, widget.kind.isConfigurable {
-                    Color.clear
-                        .contentShape(.rect)
-                        .onTapGesture { store.configuringWidgetID = widget.id }
-                        .accessibilityAddTraits(.isButton)
-                        .accessibilityLabel("Edit \(widget.kind.title)")
+            .contextMenu {
+                if store.isEditing {
+                    if widget.kind.isConfigurable {
+                        Button("Edit Widget", systemImage: "slider.horizontal.3") { store.configuringWidgetID = widget.id }
+                    }
+                    Button("Remove Widget", systemImage: "minus.circle", role: .destructive, action: remove)
                 }
             }
             .scaleEffect(isDragging ? 1.04 : 1)
@@ -103,13 +120,13 @@ private struct WidgetContainer: View {
             .zIndex(isDragging ? 1 : 0)
             .gesture(move, isEnabled: store.isEditing)
             .animation(.spring(duration: 0.3), value: isDragging)
-            .accessibilityElement(children: store.isEditing ? .ignore : .contain)
+            .sensoryFeedback(.impact(weight: .medium), trigger: isConfirmingRemoval) { _, isConfirming in isConfirming }
+            .accessibilityElement(children: .contain)
             .accessibilityLabel(widget.kind.title)
-            .accessibilityActions {
-                if store.isEditing {
-                    Button("Remove \(widget.kind.title)") { store.remove(widget.id) }
-                }
-            }
+    }
+
+    private func remove() {
+        withAnimation(.smooth(duration: 0.35)) { store.remove(widget.id) }
     }
 
     private var move: some Gesture {
@@ -150,19 +167,25 @@ private struct WidgetContainer: View {
     }
 }
 
+/// The Home Screen's remove control: a small glass disc with a minus, and a far larger
+/// invisible target, so it's easy to hit even with the widget beneath it.
 private struct RemoveButton: View {
+    let title: String
     let action: () -> Void
 
     var body: some View {
         Button(action: action) {
             Image(systemName: "minus")
-                .font(.system(size: 13, weight: .bold))
+                .font(.system(size: 14, weight: .bold))
                 .foregroundStyle(.ink)
-                .frame(width: 28, height: 28)
-                .glassEffect(.regular.interactive(), in: .circle)
+                .frame(width: 30, height: 30)
+                .glassEffect(.regular, in: .circle)
+                .padding(10)
+                .contentShape(.circle)
         }
-        .buttonStyle(.plain)
-        .accessibilityLabel("Remove Widget")
+        .buttonStyle(PressScaleStyle())
+        .padding(-10)
+        .accessibilityLabel("Remove \(title)")
     }
 }
 

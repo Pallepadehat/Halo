@@ -29,7 +29,7 @@ struct Pager<Content: View>: View {
                     .frame(width: width, height: geometry.size.height)
                 }
             }
-            .offset(x: -CGFloat(index) * width + resisted(dragOffset, at: index))
+            .offset(x: -CGFloat(index) * width + clamped(dragOffset, at: index))
             .contentShape(.rect)
             .gesture(
                 DragGesture(minimumDistance: 24)
@@ -44,7 +44,8 @@ struct Pager<Content: View>: View {
                         let target = min(max(index + step, 0), pages.count - 1)
                         selection = pages[target].id
                     },
-                isEnabled: isEnabled
+                // One page has nowhere to go.
+                isEnabled: isEnabled && pages.count > 1
             )
         }
         .clipped()
@@ -55,10 +56,10 @@ struct Pager<Content: View>: View {
         }
     }
 
-    /// Rubber-bands past the first and last page, like every Apple pager.
-    private func resisted(_ offset: CGFloat, at index: Int) -> CGFloat {
+    /// Past the first or last page there's nothing to show, so the drag simply stops.
+    private func clamped(_ offset: CGFloat, at index: Int) -> CGFloat {
         let isPastEdge = (index == 0 && offset > 0) || (index == pages.count - 1 && offset < 0)
-        return isPastEdge ? offset / 3 : offset
+        return isPastEdge ? 0 : offset
     }
 }
 

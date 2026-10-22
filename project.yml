@@ -148,6 +148,19 @@ targets:
           INSTALL_PATH: /
           SKIP_INSTALL: false
 
+  HaloPadUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources:
+      - Apps/HaloPadUITests
+    dependencies:
+      - target: HaloPad
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: dk.patrickjak.halo.pad.uitests
+        TEST_TARGET_NAME: HaloPad
+        GENERATE_INFOPLIST_FILE: true
+
   HaloHook:
     type: tool
     platform: macOS
@@ -172,6 +185,7 @@ schemes:
         HaloPad: all
     test:
       targets:
+        - HaloPadUITests
         - package: HaloKit/HaloCoreTests
         - package: HaloKit/HaloProtocolTests
         - package: HaloKit/HaloTrackpadTests
