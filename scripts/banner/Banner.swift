@@ -1,10 +1,13 @@
-// Draws Halo's banner: the icon and wordmark beside the iPad's home screen, over the icon's dusk sky.
+// Draws Halo's banner: the icon and wordmark beside the iPad's home screen, with the icon's halo of
+// light glowing round the iPad at night.
 //
 //   swift scripts/banner/Banner.swift <width> <height> <screenshot.png> <icon.png> <out.png>
 //
 // scripts/make-banner.sh draws the README banner and GitHub's social preview with it.
 
 import AppKit
+import CoreImage
+import SwiftUI
 
 let arguments = CommandLine.arguments
 guard arguments.count == 6, let width = Double(arguments[1]), let height = Double(arguments[2]) else {
@@ -25,12 +28,9 @@ let image = NSImage(size: size, flipped: false) { rect in
         CGColor(srgbRed: CGFloat((hex >> 16) & 0xFF) / 255, green: CGFloat((hex >> 8) & 0xFF) / 255, blue: CGFloat(hex & 0xFF) / 255, alpha: alpha)
     }
 
-    // The sky: the icon's, stretched to a stage, with the sun low behind the iPad.
-    let sky = CGGradient(colorsSpace: space, colors: [color(0x2E3E52), color(0x141B28), color(0x07090F)] as CFArray, locations: [0, 0.6, 1])!
+    // Night: the icon's, stretched to a stage.
+    let sky = CGGradient(colorsSpace: space, colors: [color(0x1A1F2B), color(0x0A0C11), color(0x040507)] as CFArray, locations: [0, 0.55, 1])!
     context.drawLinearGradient(sky, start: CGPoint(x: 0, y: rect.maxY), end: CGPoint(x: 0, y: 0), options: [])
-    let sunCenter = CGPoint(x: rect.width * 0.66, y: rect.height * 0.5)
-    let sun = CGGradient(colorsSpace: space, colors: [color(0xF4B678, 0.42), color(0xF4B678, 0)] as CFArray, locations: [0, 1])!
-    context.drawRadialGradient(sun, startCenter: sunCenter, startRadius: 0, endCenter: sunCenter, endRadius: rect.height * 0.75, options: [])
 
     // The iPad: the real home screen in a slim, dark bezel, casting a soft shadow.
     let screenHeight = rect.height * 0.62
@@ -39,20 +39,46 @@ let image = NSImage(size: size, flipped: false) { rect in
     let device = CGRect(x: rect.width - screenWidth - bezel * 2 - rect.width * 0.06,
                         y: (rect.height - screenHeight) / 2 - bezel, width: screenWidth + bezel * 2, height: screenHeight + bezel * 2)
     let deviceRadius = 64 * scale
+    func continuous(_ rect: CGRect, _ radius: CGFloat) -> CGPath {
+        RoundedRectangle(cornerRadius: radius, style: .continuous).path(in: rect).cgPath
+    }
+
+    // The halo: the icon's colours glowing out from round the iPad, warm above and cool below.
+    let pixels = CGSize(width: rect.width, height: rect.height)
+    let haloLayer = CGContext(data: nil, width: Int(pixels.width), height: Int(pixels.height), bitsPerComponent: 8, bytesPerRow: 0,
+                              space: space, bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue)!
+    haloLayer.addPath(continuous(device, deviceRadius))
+    haloLayer.setLineWidth(40 * scale)
+    haloLayer.replacePathWithStrokedPath()
+    haloLayer.clip()
+    let spectrum = CGGradient(colorsSpace: space, colors: [color(0xFFC46B), color(0xFF7A59), color(0xF2508C), color(0xA06BFF), color(0x4FB8FF)] as CFArray,
+                              locations: [0, 0.25, 0.5, 0.75, 1])!
+    haloLayer.drawLinearGradient(spectrum, start: CGPoint(x: device.maxX, y: device.maxY), end: CGPoint(x: device.minX, y: device.minY), options: [])
+    let halo = CIImage(cgImage: haloLayer.makeImage()!).clampedToExtent()
+    let extent = CGRect(origin: .zero, size: pixels)
+    let ci = CIContext()
+    for (radius, alpha) in [(160.0, 0.55), (60.0, 0.6)] {
+        let glow = ci.createCGImage(halo.applyingGaussianBlur(sigma: radius * scale).cropped(to: extent), from: extent)!
+        context.saveGState()
+        context.setBlendMode(.screen)
+        context.setAlpha(alpha)
+        context.draw(glow, in: rect)
+        context.restoreGState()
+    }
+
     context.saveGState()
     context.setShadow(offset: CGSize(width: 0, height: -30 * scale), blur: 90 * scale, color: color(0x000000, 0.6))
-    context.addPath(CGPath(roundedRect: device, cornerWidth: deviceRadius, cornerHeight: deviceRadius, transform: nil))
+    context.addPath(continuous(device, deviceRadius))
     context.setFillColor(color(0x0A0B0E))
     context.fillPath()
     context.restoreGState()
-    context.addPath(CGPath(roundedRect: device.insetBy(dx: 1.5 * scale, dy: 1.5 * scale),
-                           cornerWidth: deviceRadius, cornerHeight: deviceRadius, transform: nil))
+    context.addPath(continuous(device.insetBy(dx: 1.5 * scale, dy: 1.5 * scale), deviceRadius))
     context.setStrokeColor(color(0x3A3C42))
     context.setLineWidth(3 * scale)
     context.strokePath()
     let screen = device.insetBy(dx: bezel, dy: bezel)
     context.saveGState()
-    context.addPath(CGPath(roundedRect: screen, cornerWidth: deviceRadius - bezel, cornerHeight: deviceRadius - bezel, transform: nil))
+    context.addPath(continuous(screen, deviceRadius - bezel))
     context.clip()
     screenshot.draw(in: screen)
     context.restoreGState()

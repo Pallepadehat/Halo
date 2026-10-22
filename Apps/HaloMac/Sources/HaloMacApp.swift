@@ -18,7 +18,8 @@ struct HaloMacApp: App {
                 .environment(helper.pads)
                 .environment(helper.trackpad)
         } label: {
-            Image(systemName: helper.agents.needsAttention ? "circle.inset.filled" : "circle")
+            // The icon's iPad, with a badge when an agent needs you.
+            Image(systemName: helper.agents.needsAttention ? "ipad.landscape.badge.exclamationmark" : "ipad.landscape")
         }
         .menuBarExtraStyle(.window)
     }

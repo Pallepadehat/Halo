@@ -8,8 +8,11 @@ PAD=Apps/HaloPad/Resources/Assets.xcassets/AppIcon.appiconset
 MAC=Apps/HaloMac/Resources/Assets.xcassets/AppIcon.appiconset
 mkdir -p "$PAD" "$MAC" docs/images
 
-swift scripts/icon/AppIcon.swift ios "$PAD/AppIcon.png"
-swift scripts/icon/AppIcon.swift mac build/AppIcon-mac.png 2>/dev/null || { mkdir -p build; swift scripts/icon/AppIcon.swift mac build/AppIcon-mac.png; }
+# Compiled, not interpreted: the conic gradient is computed per pixel.
+mkdir -p build
+swiftc -O scripts/icon/AppIcon.swift -o build/AppIcon
+build/AppIcon ios "$PAD/AppIcon.png"
+build/AppIcon mac build/AppIcon-mac.png
 
 for size in 16 32 64 128 256 512 1024; do
   sips -z $size $size build/AppIcon-mac.png --out "$MAC/icon_$size.png" >/dev/null
