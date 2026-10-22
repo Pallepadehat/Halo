@@ -35,6 +35,7 @@ Halo/
 │       ├── Sources/HaloHookBridge/  halo-hook ⇄ helper Unix socket (client, server, paths)
 │       ├── Sources/HaloAgents/      tool adapters, AgentSessionStore, AgentCoordinator, HookInstaller
 │       ├── Sources/HaloTransport/   pairing, encrypted channels, Bonjour discovery, Keychain pairings
+│       ├── Sources/HaloMetrics/     macOS-only CPU, memory, storage, network and per-app sampling
 │       └── Tests/
 └── docs/
     ├── PRD.md
@@ -79,6 +80,20 @@ Agent tools call `halo-hook <tool>` from their hook config. It relays stdin over
 - **Framing:** `NetworkChannel` sends length-prefixed JSON frames. Send through `MessageOutbox` from synchronous code so messages keep their order. Cancelling a reading task closes the channel.
 - The Mac sends a `snapshot()` to every new connection so iPads start in sync. The iPad keeps no state the Mac doesn't own.
 - `ModeSuggester` is edge-triggered: it reacts when an agent *starts* needing you.
+
+## Pulse
+
+- The helper samples every 2 s (`MetricsMonitor`) and keeps a 10-minute `MetricsHistory`, which seeds each iPad on connect.
+- Per-app culprits come from libproc, and only while CPU or memory spikes (`SystemMetrics.*Threshold`). Helper processes fold into the `.app` they ship in.
+- Charts follow the `dataviz` skill: stat tiles with a recessive single-series sparkline, a meter for ratios against a limit, and status shown with icon + words, never colour alone. Render a chart and look at it before calling it done.
+
+## Previewing on the iPad
+
+DEBUG builds accept `-HaloDemo [mode]` (e.g. `-HaloDemo pulse`), which fills every mode with `DemoData` and needs no Mac. Use it for screenshots and design passes:
+
+```sh
+xcrun simctl launch booted dk.patrickjak.halo.pad -HaloDemo agents
+```
 
 ## Tech conventions
 
