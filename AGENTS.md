@@ -98,6 +98,7 @@ The look is Apple-native and quiet. Match it in new work:
 - **Motion:** slow and eased (`Animation.halo`). The Home Screen wiggle in edit mode is the one exception.
 - **Adaptive widgets:** every widget reads its own size and adds detail as it grows (a trend, progress, a stacked layout). Check new widgets at their minimum and maximum size.
 - iPadOS 26 ignores orientation locks for resizable apps, so pages must work in portrait too.
+- **Rows can be as short as ~64 pt** (11″ landscape, below the Dock). Every widget must degrade gracefully: scale its type, then drop detail, never clip. Check with `-HaloFrame 1210x834`. Unavailable states keep the widget's shape (an empty control, a quiet caption), never a paragraph of text.
 
 ## Widgets and pages
 
@@ -111,7 +112,8 @@ The look is Apple-native and quiet. Match it in new work:
 `DesktopFeed` polls media and controls once a second, only while an iPad is connected. Wallpaper, Dock, Deck and calendar refresh every 20 s. It sends only meaningful changes, and every new iPad gets a full snapshot.
 
 - **Music and Spotify** use AppleScript (Automation consent per app; `com.apple.security.automation.apple-events`). Scripts check `is running` first, so polling never launches a player.
-- **Brightness** uses private DisplayServices via `dlsym`. It only works on built-in and Apple displays; other monitors report "unavailable".
+- **Brightness:** built-in and Apple displays use private DisplayServices via `dlsym`. Every other monitor is dimmed in software by scaling its gamma, floored at 15% so it never goes black. It's re-applied if macOS resets it, and restored when the helper quits. The slider is labelled "Software".
+- **AppleScript:** never compile a script that names an app unless `NSRunningApplication` says it's running. Compiling alone makes macOS look the app up, and it asks "Where is Spotify?" if it isn't installed.
 - **Deck:** built-ins, every Shortcut (`shortcuts list` / `run`), and executables in `~/Library/Application Support/Halo/Scripts`. macOS has no API for Do Not Disturb; a Shortcut using "Set Focus" covers it.
 - **Calendar** uses EventKit (`com.apple.security.personal-information.calendars`).
 
@@ -123,7 +125,7 @@ The look is Apple-native and quiet. Match it in new work:
 
 ## Previewing on the iPad
 
-DEBUG builds accept `-HaloDemo [page index]`, which fills every widget with rendered `DemoData` (a wallpaper, artwork, icons, agents and more) and needs no Mac. Add `-HaloDemoEditing` to open in edit mode, and `-HaloLandscape` to request landscape. Use it for screenshots and design passes:
+DEBUG builds accept `-HaloDemo [page index]`, which fills every widget with rendered `DemoData` (a wallpaper, artwork, icons, agents and more) and needs no Mac. Add `-HaloDemoEditing` to open in edit mode, `-HaloFrame 1210x834` to render at an exact landscape size (rotated, for a portrait simulator), and `-HaloDemoBrightness software|none` to preview non-Apple monitors. Use it for screenshots and design passes:
 
 ```sh
 xcrun simctl launch booted dk.patrickjak.halo.pad -HaloDemo 2 -HaloDemoEditing
