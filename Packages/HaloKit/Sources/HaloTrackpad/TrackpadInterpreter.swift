@@ -37,12 +37,15 @@ public struct TrackpadInterpreter: Sendable {
         /// A pinch steps one zoom level per this change in log-scale (~20%).
         public var zoomStep = 0.18
         public var swipeDistance = 70.0
+        /// Fingers must lift within this long of their last movement for a flick to coast.
+        public var momentumLiftWindow = 0.06
 
         public init() {}
     }
 
     public let configuration: Configuration
     private var gesture: Gesture?
+    private var pendingMomentum: ScrollMomentum?
 
     public init(configuration: Configuration = Configuration()) {
         self.configuration = configuration
@@ -52,6 +55,12 @@ public struct TrackpadInterpreter: Sendable {
     public var isAwaitingHold: Bool {
         guard let gesture else { return false }
         return gesture.fingerCount == 1 && gesture.maximumFingerCount == 1 && !gesture.hasMoved && !gesture.isDragging
+    }
+
+    /// The coast a flick just launched, if any. Callers drive it and send `momentumScroll` events.
+    public mutating func takeMomentum() -> ScrollMomentum? {
+        defer { pendingMomentum = nil }
+        return pendingMomentum
     }
 
     /// Feed the complete set of touches after every change: began, moved or ended.
@@ -79,6 +88,7 @@ public struct TrackpadInterpreter: Sendable {
 
         let delta = centroid - gesture.last
         let interval = time - gesture.lastTime
+        gesture.lastInterval = interval
         if (centroid - gesture.anchor).length > configuration.slop { gesture.hasMoved = true }
         gesture.last = centroid
         gesture.lastTime = time
@@ -119,6 +129,7 @@ public struct TrackpadInterpreter: Sendable {
 
         let phase: GesturePhase = gesture.isScrolling ? .changed : .began
         gesture.isScrolling = true
+        gesture.recordScrollVelocity(delta: delta, interval: gesture.lastInterval)
         return [.scroll(dx: delta.x, dy: delta.y, phase: phase)]
     }
 
@@ -137,7 +148,13 @@ public struct TrackpadInterpreter: Sendable {
         self.gesture = nil
 
         if gesture.isDragging { return [.button(.left, isPressed: false)] }
-        if gesture.isScrolling { return [.scroll(dx: 0, dy: 0, phase: .ended)] }
+        if gesture.isScrolling {
+            // Fingers that were still moving when they lifted launch a coast; a pause first doesn't.
+            if time - gesture.lastTime <= configuration.momentumLiftWindow {
+                pendingMomentum = ScrollMomentum(velocity: gesture.scrollVelocity)
+            }
+            return [.scroll(dx: 0, dy: 0, phase: .ended)]
+        }
 
         let isTap = !gesture.hasMoved && !gesture.isPinching && !gesture.hasSwiped
             && time - gesture.start <= configuration.tapMaximumDuration
@@ -168,6 +185,15 @@ private extension TrackpadInterpreter {
         var isScrolling = false
         var isPinching = false
         var hasSwiped = false
+        var lastInterval: TimeInterval = 0
+        /// Smoothed, in points per second, so one jittery frame doesn't decide the coast.
+        var scrollVelocity: (x: Double, y: Double) = (0, 0)
+
+        mutating func recordScrollVelocity(delta: Point, interval: TimeInterval) {
+            guard interval > 0 else { return }
+            let instant = (x: delta.x / interval, y: delta.y / interval)
+            scrollVelocity = (0.6 * instant.x + 0.4 * scrollVelocity.x, 0.6 * instant.y + 0.4 * scrollVelocity.y)
+        }
 
         init(start: TimeInterval, origin: Point, fingerCount: Int, spread: Double) {
             self.start = start

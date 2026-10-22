@@ -2,7 +2,7 @@ import Foundation
 import HaloCore
 
 /// Bump on any wire change: devices refuse peers that speak a different version.
-public let haloProtocolVersion = 4
+public let haloProtocolVersion = 5
 
 /// Mac helper → iPad.
 public enum MacMessage: Codable, Sendable, Equatable {

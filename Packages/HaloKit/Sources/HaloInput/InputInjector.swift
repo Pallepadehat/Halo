@@ -38,6 +38,8 @@ public final class InputInjector: Sendable {
             click(button)
         case .scroll(let dx, let dy, let phase):
             scroll(dx: dx, dy: dy, phase: phase)
+        case .momentumScroll(let dx, let dy, let phase):
+            scroll(dx: dx, dy: dy, momentum: phase)
         case .zoom(let direction):
             // Synthesising magnify gestures isn't public API; ⌘= and ⌘- are what apps honour.
             KeyChord(key: direction == .in ? .equals : .minus, flags: .maskCommand).post()
@@ -109,6 +111,32 @@ public final class InputInjector: Sendable {
         event?.setIntegerValueField(.scrollWheelEventIsContinuous, value: 1)
         event?.setIntegerValueField(.scrollWheelEventScrollPhase, value: Self.scrollPhase(phase))
         event?.post(tap: .cghidEventTap)
+    }
+
+    /// The coast after a flick. Momentum events carry no scroll phase, only a momentum phase,
+    /// exactly as a real trackpad sends them, so apps apply their own rubber-banding at edges.
+    private func scroll(dx: Double, dy: Double, momentum phase: GesturePhase) {
+        let wheel = state.withLock { $0.scroll.wheelDeltas(dx: dx, dy: dy) }
+        let event = CGEvent(
+            scrollWheelEvent2Source: nil,
+            units: .pixel,
+            wheelCount: 2,
+            wheel1: wheel.vertical,
+            wheel2: wheel.horizontal,
+            wheel3: 0
+        )
+        event?.setIntegerValueField(.scrollWheelEventIsContinuous, value: 1)
+        event?.setIntegerValueField(.scrollWheelEventMomentumPhase, value: Self.momentumPhase(phase))
+        event?.post(tap: .cghidEventTap)
+    }
+
+    /// `kCGMomentumScrollPhase…` values.
+    private static func momentumPhase(_ phase: GesturePhase) -> Int64 {
+        switch phase {
+        case .began: 1
+        case .changed: 2
+        case .ended: 3
+        }
     }
 
     /// `kCGScrollPhase…` values.

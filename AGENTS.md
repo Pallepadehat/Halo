@@ -112,7 +112,8 @@ The look is Apple-native and quiet. Match it in new work:
 `DesktopFeed` polls media and controls once a second, only while an iPad is connected. Wallpaper, Dock, Deck and calendar refresh every 20 s. It sends only meaningful changes, and every new iPad gets a full snapshot.
 
 - **Music and Spotify** use AppleScript (Automation consent per app; `com.apple.security.automation.apple-events`). Scripts check `is running` first, so polling never launches a player.
-- **Brightness:** built-in and Apple displays use private DisplayServices via `dlsym`. Every other monitor is dimmed in software by scaling its gamma, floored at 15% so it never goes black. It's re-applied if macOS resets it, and restored when the helper quits. The slider is labelled "Software".
+- **Entitlements live in `project.yml`** (`entitlements.properties`). xcodegen rewrites the `.entitlements` file on every run, so editing the file directly is silently lost. That's exactly how Music once broke.
+- **Brightness:** applies to every connected display. Built-in and Apple displays use private DisplayServices via `dlsym`. Every other monitor is dimmed in software by scaling its gamma, floored at 15% so it never goes black. It's re-applied if macOS resets it, and restored when the helper quits. The slider is labelled "Software".
 - **AppleScript:** never compile a script that names an app unless `NSRunningApplication` says it's running. Compiling alone makes macOS look the app up, and it asks "Where is Spotify?" if it isn't installed.
 - **Deck:** built-ins, every Shortcut (`shortcuts list` / `run`), and executables in `~/Library/Application Support/Halo/Scripts`. macOS has no API for Do Not Disturb; a Shortcut using "Set Focus" covers it.
 - **Calendar** uses EventKit (`com.apple.security.personal-information.calendars`).
@@ -139,6 +140,7 @@ The PRD budget is **< 20 ms p95, iPad touch to Mac pointer**. Treat every change
 - **Mac:** `PadLink.receive` is `@concurrent`, so pointer events reach `InputInjector` and pings are answered without touching the main actor. Never route pointer events through `onMessage`.
 - **Measuring:** `LatencyProbe` pings once a second on the same connection. Debug builds show the estimated one-way p50/p95 in Trackpad mode, amber when over budget. Check it before and after changes.
 - **Wire format:** pointer events stay JSON (~8 µs, 67 bytes). `PointerEncodingTests` guards this. Go binary only if that test says so.
+- **Scroll momentum:** a two-finger flick lifted while still moving launches `ScrollMomentum` (UIKit's deceleration rate). `TouchSurfaceView` drives it with a `CADisplayLink`, a new touch stops it, and the Mac posts real momentum-phase scroll events, so apps rubber-band as they do with hardware.
 - **Mac limitations:** there's no public API to synthesise magnify gestures, so pinch maps to ⌘= / ⌘−, and three-finger swipes map to the ⌃-arrow shortcuts for spaces, Mission Control and App Exposé. Posting events needs Accessibility (`InputAccess`).
 
 ## Troubleshooting

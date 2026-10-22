@@ -30,6 +30,9 @@ final class TouchSurfaceView: UIView {
     private var activeTouches: Set<UITouch> = []
     private var holdTimer: Task<Void, Never>?
     private var fingerprints: [ObjectIdentifier: CALayer] = [:]
+    private var momentum: ScrollMomentum?
+    private var momentumLink: CADisplayLink?
+    private var hasSentMomentum = false
 
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -45,6 +48,8 @@ final class TouchSurfaceView: UIView {
     }
 
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
+        // A finger landing catches a coasting scroll, as it does on a real trackpad.
+        stopMomentum()
         if activeTouches.isEmpty { onTouchingChanged(true) }
         activeTouches.formUnion(touches)
         process(event)
@@ -73,6 +78,7 @@ final class TouchSurfaceView: UIView {
             return TouchPoint(id: ObjectIdentifier(touch).hashValue, x: location.x, y: location.y)
         }
         emit(interpreter.update(points, at: time))
+        if let launched = interpreter.takeMomentum() { startMomentum(launched) }
         scheduleHoldIfNeeded()
         drawFingerprints()
     }
@@ -96,6 +102,39 @@ final class TouchSurfaceView: UIView {
             holdTimer = nil
             emit(interpreter.holdElapsed(at: ProcessInfo.processInfo.systemUptime))
         }
+    }
+
+    // MARK: - Momentum
+
+    /// Coasts at the display's own refresh rate, so the scroll stays as smooth as the screen.
+    private func startMomentum(_ launched: ScrollMomentum) {
+        momentum = launched
+        hasSentMomentum = false
+        let link = CADisplayLink(target: self, selector: #selector(stepMomentum))
+        link.preferredFrameRateRange = CAFrameRateRange(minimum: 60, maximum: 120, preferred: 120)
+        link.add(to: .main, forMode: .common)
+        momentumLink = link
+    }
+
+    @objc private func stepMomentum(_ link: CADisplayLink) {
+        guard var current = momentum else { return stopMomentum() }
+        guard let step = current.advance(by: link.targetTimestamp - link.timestamp) else { return stopMomentum() }
+        momentum = current
+        emit([.momentumScroll(dx: step.dx, dy: step.dy, phase: hasSentMomentum ? .changed : .began)])
+        hasSentMomentum = true
+    }
+
+    private func stopMomentum() {
+        momentumLink?.invalidate()
+        momentumLink = nil
+        momentum = nil
+        if hasSentMomentum { emit([.momentumScroll(dx: 0, dy: 0, phase: .ended)]) }
+        hasSentMomentum = false
+    }
+
+    override func removeFromSuperview() {
+        stopMomentum()
+        super.removeFromSuperview()
     }
 
     // MARK: - Feedback

@@ -10,6 +10,8 @@ public enum PointerEvent: Codable, Sendable, Equatable {
     case click(MouseButton)
     /// Two-finger scroll, in the direction the fingers moved.
     case scroll(dx: Double, dy: Double, phase: GesturePhase)
+    /// The coast after a flick, decaying until it stops or a finger lands.
+    case momentumScroll(dx: Double, dy: Double, phase: GesturePhase)
     case zoom(ZoomDirection)
     /// Three-finger swipe, in the direction the fingers moved.
     case swipe(SwipeDirection)
