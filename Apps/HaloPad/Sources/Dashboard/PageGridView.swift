@@ -97,7 +97,6 @@ private struct WidgetContainer: View {
                         .accessibilityLabel("Edit \(widget.kind.title)")
                 }
             }
-            .modifier(Wiggle(isActive: store.isEditing && !isDragging, seed: widget.id.hashValue))
             .scaleEffect(isDragging ? 1.04 : 1)
             .shadow(color: .black.opacity(isDragging ? 0.35 : 0), radius: 24, y: 12)
             .offset(dragOffset)
@@ -148,42 +147,6 @@ private struct WidgetContainer: View {
     private func targetFamily(for translation: CGSize) -> WidgetFamily {
         let corner = CGPoint(x: rect.maxX + translation.width, y: rect.maxY + translation.height)
         return geometry.nearestFamily(reaching: corner, from: widget.origin, among: widget.kind.families) ?? widget.family
-    }
-}
-
-/// The Home Screen jiggle: a tiny rotation flipping back and forth, out of phase per widget.
-///
-/// A single repeating Core Animation on the rotation alone, scoped so nothing else inherits it.
-/// The render server plays it, so widgets (and their Liquid Glass) aren't redrawn every frame,
-/// and starting or stopping it never disturbs their layout.
-private struct Wiggle: ViewModifier {
-    let isActive: Bool
-    let seed: Int
-
-    /// A little under a degree each way, about three and a half wobbles a second.
-    private static let amplitude = 0.8
-    private static let halfPeriod = 0.14
-
-    @State private var isTilted = false
-
-    func body(content: Content) -> some View {
-        content
-            .animation(isActive ? .easeInOut(duration: duration).repeatForever(autoreverses: true) : .easeOut(duration: 0.18)) { view in
-                view.rotationEffect(.degrees(isActive ? (isTilted ? Self.amplitude : -Self.amplitude) : 0))
-            }
-            .task(id: isActive) {
-                guard isActive else {
-                    isTilted = false
-                    return
-                }
-                // Stagger the start so neighbouring widgets never move in lockstep.
-                try? await Task.sleep(for: .milliseconds(abs(seed) % 140))
-                isTilted = true
-            }
-    }
-
-    private var duration: Double {
-        Self.halfPeriod * (0.9 + Double(abs(seed) % 9) * 0.025)
     }
 }
 

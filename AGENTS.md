@@ -95,7 +95,7 @@ The look is Apple-native and quiet. Match it in new work:
 - **Type:** white ink at `ink` / `inkSecondary` / `inkTertiary` (see `Theme.swift`). Hero numbers use `Font.hero` (SF Thin, monospaced digits). Small labels use `eyebrowStyle()`.
 - **Glass:** Liquid Glass (`glassEffect`, `.buttonStyle(.glass)`) for anything you touch: sliders, buttons, the trackpad, the Dock. Information sits directly on the backdrop.
 - **Colour:** `attention` (amber) means "needs you" and `progress` (green) means "working". Always pair them with an icon or words.
-- **Motion:** slow and eased (`Animation.halo`). The Home Screen wiggle in edit mode is the one exception.
+- **Motion:** slow and eased (`Animation.halo`). Nothing wiggles or bounces for attention; edit mode is shown by outlines and handles, not motion.
 - **Adaptive widgets:** every widget reads its own size and adds detail as it grows (a trend, progress, a stacked layout). Check new widgets at their minimum and maximum size.
 - iPadOS 26 ignores orientation locks for resizable apps, so pages must work in portrait too.
 - **Rows can be as short as ~64 pt** (11″ landscape, below the Dock). Every widget must degrade gracefully: scale its type, then drop detail, never clip. Check with `-HaloFrame 1210x834`. Unavailable states keep the widget's shape (an empty control, a quiet caption), never a paragraph of text.
