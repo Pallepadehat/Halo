@@ -13,23 +13,30 @@ enum DemoData {
     @MainActor
     static func model() -> PadModel {
         let model = PadModel(link: .demo())
-        let track = NowPlaying(source: .music, trackID: "demo", title: "Daylight", artist: "Orbit Sessions", album: "Daylight",
-                               duration: 214, isPlaying: true, position: 63)
-        let apps = [("com.apple.finder", "Finder"), ("com.apple.Safari", "Safari"), ("com.apple.Music", "Music"),
-                    ("com.apple.Notes", "Notes"), ("com.openai.chat", "ChatGPT"), ("com.tinyspeck.slackmacgap", "Slack")]
+        let assets = RealAssets.load()
+        let track = assets?.track.map {
+            NowPlaying(source: .music, trackID: "demo", title: $0.title, artist: $0.artist, album: $0.album,
+                       duration: $0.duration, isPlaying: $0.isPlaying, position: $0.duration * 0.3)
+        } ?? NowPlaying(source: .music, trackID: "demo", title: "Daylight", artist: "Orbit Sessions", album: "Daylight",
+                        duration: 214, isPlaying: true, position: 63)
+        let apps = assets?.apps.map { ($0.item.id, $0.item.name) }
+            ?? [("com.apple.finder", "Finder"), ("com.apple.Safari", "Safari"), ("com.apple.Music", "Music"),
+                ("com.apple.Notes", "Notes"), ("com.openai.chat", "ChatGPT"), ("com.tinyspeck.slackmacgap", "Slack")]
+        let icons: [MacMessage] = assets.map { $0.apps.map { .appIcon(id: $0.item.id, png: $0.icon) } }
+            ?? apps.enumerated().map { index, app in .appIcon(id: app.0, png: icon(index: index)) }
         let messages: [MacMessage] = [
             .metricsHistory(metricsHistory()),
             .agents(agents()),
             .trackpadAvailability(isAvailable: true),
-            .wallpaper(jpeg: duskWallpaper()),
+            .wallpaper(jpeg: assets?.wallpaper ?? duskWallpaper()),
             .launcher(apps.map { LaunchItem(id: $0.0, name: $0.1) }),
             .nowPlaying(track),
-            .artwork(trackID: "demo", jpeg: artwork()),
+            .artwork(trackID: "demo", jpeg: assets?.artwork ?? artwork()),
             .controls(controls()),
             .deck(deck()),
             .upNext(UpcomingEvent(title: "Design review", start: .now.addingTimeInterval(25 * 60), end: .now.addingTimeInterval(55 * 60),
                                   isAllDay: false, location: nil, calendarColor: "#FF9F0A")),
-        ] + apps.enumerated().map { index, app in .appIcon(id: app.0, png: icon(index: index)) }
+        ] + icons
         messages.forEach(model.apply)
         return model
     }
@@ -89,6 +96,60 @@ enum DemoData {
             DeckAction(id: "builtin.toggleDarkMode", title: "Dark Mode", symbol: "circle.lefthalf.filled", kind: .builtIn),
             DeckAction(id: "script.deploy.sh", title: "Deploy staging", symbol: "terminal.fill", kind: .script),
         ]
+    }
+
+    // MARK: - Real pictures
+
+    /// Real icons, wallpaper and artwork exported from a Mac by `scripts/demo/DemoAssets.swift`
+    /// into `Documents/DemoAssets` (see `scripts/make-screenshots.sh`). Without them, the demo
+    /// falls back to drawn stand-ins.
+    struct RealAssets {
+        struct App {
+            let item: LaunchItem
+            let icon: Data
+        }
+
+        struct Track: Decodable {
+            let title: String
+            let artist: String
+            let album: String
+            let duration: TimeInterval
+            /// Playing tints the backdrop with the artwork; paused leaves the wallpaper.
+            let isPlaying: Bool
+        }
+
+        let apps: [App]
+        let wallpaper: Data?
+        let artwork: Data?
+        let track: Track?
+
+        private struct Manifest: Decodable {
+            struct App: Decodable {
+                let id: String
+                let name: String
+                let icon: String
+            }
+
+            let apps: [App]
+            let wallpaper: String?
+            let artwork: String?
+            let track: Track?
+        }
+
+        static func load() -> RealAssets? {
+            guard let documents = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first else { return nil }
+            let folder = documents.appending(path: "DemoAssets")
+            guard let data = try? Data(contentsOf: folder.appending(path: "manifest.json")),
+                  let manifest = try? JSONDecoder().decode(Manifest.self, from: data)
+            else { return nil }
+            let read = { (file: String?) in file.flatMap { try? Data(contentsOf: folder.appending(path: $0)) } }
+            return RealAssets(
+                apps: manifest.apps.compactMap { app in read(app.icon).map { App(item: LaunchItem(id: app.id, name: app.name), icon: $0) } },
+                wallpaper: read(manifest.wallpaper),
+                artwork: read(manifest.artwork),
+                track: manifest.artwork == nil ? nil : manifest.track
+            )
+        }
     }
 
     // MARK: - Rendered stand-ins

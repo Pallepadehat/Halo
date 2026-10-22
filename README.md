@@ -283,7 +283,7 @@ The appcast is signed with a Sparkle key in the maintainer's keychain, and its p
 ## Credits
 
 - **[Sparkle](https://sparkle-project.org)** keeps the helper up to date (MIT License).
-- **The handwritten hello** is from Michal's *AppleHello* SwiftUI sample, and follows Apple's own "hello" lettering. Its licence hasn't been confirmed: see `Apps/HaloPad/Sources/Dashboard/HelloShape.swift`.
+- **The handwritten hello** is from Michal Tynior's **[AppleHello](https://github.com/mtynior/AppleHello)**, Apple's hello animation recreated in SwiftUI (MIT License).
 - Inspired by **Orbit**, which first put a Mac companion on the iPad beside it.
 
 ## License
