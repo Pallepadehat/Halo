@@ -7,6 +7,9 @@ struct DashboardView: View {
 
     @Environment(DashboardStore.self) private var store
     @Environment(Ambience.self) private var ambience
+    /// The chrome settles in after the page, so arriving feels like one calm movement:
+    /// the hello starts writing, then the status bar and the Dock ease in beneath it.
+    @State private var hasArrived = false
 
     var body: some View {
         @Bindable var store = store
@@ -25,6 +28,8 @@ struct DashboardView: View {
                     .frame(height: DashboardView.barHeight)
                     // Room above the bar, so its controls never crowd the iPad's edge.
                     .padding(.top, 16)
+                    .opacity(hasArrived ? 1 : 0)
+                    .animation(.smooth(duration: 1.2).delay(0.5), value: hasArrived)
 
                     if store.isEmpty, !store.isEditing {
                         HelloView()
@@ -43,6 +48,9 @@ struct DashboardView: View {
 
                     DockBar(availableWidth: screen.size.width - 64)
                         .padding(.bottom, 20)
+                        .opacity(hasArrived ? 1 : 0)
+                        .offset(y: hasArrived ? 0 : 40)
+                        .animation(.smooth(duration: 1.4).delay(1.0), value: hasArrived)
                 }
             }
             .offset(ambience.pixelShift)
@@ -60,6 +68,7 @@ struct DashboardView: View {
         .animation(.halo, value: store.isEditing)
         .animation(.halo, value: store.isEmpty)
         .animation(.smooth(duration: 0.5), value: store.currentPageID)
+        .onAppear { hasArrived = true }
         .task { await ambience.run() }
     }
 

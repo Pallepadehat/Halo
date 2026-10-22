@@ -15,6 +15,15 @@ struct DockBar: View {
     static let minimumIconSide: CGFloat = 40
 
     var body: some View {
+        // Holds its place while the Mac's apps arrive, so they rise in rather than pop.
+        ZStack {
+            if !model.launcher.isEmpty { tray }
+        }
+        .animation(.smooth(duration: 0.9), value: model.launcher.isEmpty)
+    }
+
+    @ViewBuilder
+    private var tray: some View {
         if !model.launcher.isEmpty {
             let side = iconSide
             HStack(spacing: side * 0.28) {
@@ -27,7 +36,8 @@ struct DockBar: View {
                 }
             }
             .padding(14)
-            .glassEffect(.regular, in: .rect(cornerRadius: 30, style: .continuous))
+            // Concentric with the icons inside it, like the Mac's own Dock.
+            .glassEffect(.regular, in: .rect(cornerRadius: side * 0.225 + 14, style: .continuous))
             .disabled(store.isEditing)
             .opacity(store.isEditing ? 0.6 : 1)
             .transition(.move(edge: .bottom).combined(with: .opacity))
@@ -67,6 +77,8 @@ private struct AppButton: View {
                 }
             }
             .frame(width: side, height: side)
+            // Icons arrive one by one after the names; each fades in where it belongs.
+            .animation(.smooth(duration: 0.6), value: icon != nil)
             .shadow(color: .black.opacity(0.25), radius: 8, y: 4)
             .keyframeAnimator(initialValue: 0.0, trigger: launches) { content, lift in
                 content.offset(y: -lift)
