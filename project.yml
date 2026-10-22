@@ -29,6 +29,8 @@ targets:
         product: HaloCore
       - package: HaloKit
         product: HaloProtocol
+      - package: HaloKit
+        product: HaloTransport
     info:
       path: Apps/HaloPad/Resources/Info.plist
       properties:
@@ -44,6 +46,7 @@ targets:
         NSLocalNetworkUsageDescription: Halo connects to the Halo helper on your Mac over the local network.
         NSBonjourServices:
           - _halo._tcp
+          - _halo-pair._tcp
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: dk.patrickjak.halo.pad
@@ -65,6 +68,8 @@ targets:
         product: HaloAgents
       - package: HaloKit
         product: HaloHookBridge
+      - package: HaloKit
+        product: HaloTransport
       # Ships at Contents/MacOS/halo-hook, next to the helper's own executable.
       - target: HaloHook
         embed: true
@@ -79,6 +84,7 @@ targets:
         NSLocalNetworkUsageDescription: Halo Helper talks to your paired iPad over the local network.
         NSBonjourServices:
           - _halo._tcp
+          - _halo-pair._tcp
     entitlements:
       path: Apps/HaloMac/Resources/HaloMac.entitlements
     settings:

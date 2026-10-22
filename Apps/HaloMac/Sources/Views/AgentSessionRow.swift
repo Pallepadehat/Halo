@@ -49,8 +49,8 @@ private struct ApprovalCard: View {
                     .font(.caption)
                     .foregroundStyle(.tertiary)
                 Spacer()
-                Button("Deny") { agents.resolve(request, with: .deny(reason: nil)) }
-                Button("Allow") { agents.resolve(request, with: .allow) }
+                Button("Deny") { agents.resolve(request.id, with: .deny(reason: nil)) }
+                Button("Allow") { agents.resolve(request.id, with: .allow) }
                     .keyboardShortcut(.defaultAction)
             }
             .controlSize(.small)

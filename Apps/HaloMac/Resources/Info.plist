@@ -25,6 +25,7 @@
 	<key>NSBonjourServices</key>
 	<array>
 		<string>_halo._tcp</string>
+		<string>_halo-pair._tcp</string>
 	</array>
 	<key>NSLocalNetworkUsageDescription</key>
 	<string>Halo Helper talks to your paired iPad over the local network.</string>

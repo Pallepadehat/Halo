@@ -18,6 +18,9 @@ final class AgentHub {
     private(set) var sessions: [AgentSession] = []
     private(set) var integrations: [AgentTool: IntegrationState] = [:]
 
+    /// Called on every session change, e.g. to forward state to connected iPads.
+    @ObservationIgnored var onSessionsChange: ([AgentSession]) -> Void = { _ in }
+
     var needsAttention: Bool {
         sessions.contains(where: \.needsAttention)
     }
@@ -35,7 +38,9 @@ final class AgentHub {
 
         updates = Task { [coordinator, weak self] in
             for await sessions in coordinator.sessionUpdates {
-                self?.sessions = sessions
+                guard let self else { return }
+                self.sessions = sessions
+                self.onSessionsChange(sessions)
             }
         }
 
@@ -48,8 +53,8 @@ final class AgentHub {
         }
     }
 
-    func resolve(_ request: ApprovalRequest, with decision: ApprovalDecision) {
-        Task { await coordinator.resolve(request.id, with: decision) }
+    func resolve(_ id: ApprovalRequest.ID, with decision: ApprovalDecision) {
+        Task { await coordinator.resolve(id, with: decision) }
     }
 
     func setIntegration(_ tool: AgentTool, enabled: Bool) {

@@ -8,6 +8,8 @@ struct MenuContent: View {
         VStack(alignment: .leading, spacing: 12) {
             SessionsSection(sessions: agents.sessions)
             Divider()
+            PadsSection()
+            Divider()
             IntegrationsSection()
             Divider()
             Button("Quit Halo") { NSApplication.shared.terminate(nil) }
@@ -54,6 +56,8 @@ struct SectionHeader: View {
 }
 
 #Preview {
+    let helper = Helper()
     MenuContent()
-        .environment(AgentHub())
+        .environment(helper.agents)
+        .environment(helper.pads)
 }

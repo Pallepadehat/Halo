@@ -3,20 +3,21 @@ import SwiftUI
 /// Menu bar helper: owns all Mac-side logic (metrics, agent adapters, input control, transport).
 @main
 struct HaloMacApp: App {
-    @State private var agents: AgentHub
+    @State private var helper: Helper
 
     init() {
-        let agents = AgentHub()
-        agents.start()
-        _agents = State(initialValue: agents)
+        let helper = Helper()
+        helper.start()
+        _helper = State(initialValue: helper)
     }
 
     var body: some Scene {
         MenuBarExtra {
             MenuContent()
-                .environment(agents)
+                .environment(helper.agents)
+                .environment(helper.pads)
         } label: {
-            Image(systemName: agents.needsAttention ? "circle.inset.filled" : "circle")
+            Image(systemName: helper.agents.needsAttention ? "circle.inset.filled" : "circle")
         }
         .menuBarExtraStyle(.window)
     }
