@@ -90,6 +90,7 @@ Screen mirroring / second display, Windows/Android/iPhone, remote use over the i
 
 ## Working agreements
 
+- **Always use the provided skills.** Before starting a task, check which skills are available (e.g. in `.claude/skills/`, `.agents/skills/`, or those your harness lists) and use every one that fits the task. Follow a skill's instructions instead of improvising your own approach.
 - Commit after every change/feature with a clear message. Small, focused commits.
 - Don't commit `Halo.xcodeproj`, `.build/`, `DerivedData/`, or `xcuserdata/`.
 - Run `swift test --package-path Packages/HaloKit` and build both schemes before committing.
