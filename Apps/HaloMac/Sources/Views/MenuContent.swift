@@ -10,6 +10,8 @@ struct MenuContent: View {
             Divider()
             PadsSection()
             Divider()
+            TrackpadSection()
+            Divider()
             IntegrationsSection()
             Divider()
             Button("Quit Halo") { NSApplication.shared.terminate(nil) }
@@ -60,4 +62,5 @@ struct SectionHeader: View {
     MenuContent()
         .environment(helper.agents)
         .environment(helper.pads)
+        .environment(helper.trackpad)
 }

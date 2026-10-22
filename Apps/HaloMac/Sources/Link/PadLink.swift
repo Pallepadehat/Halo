@@ -29,6 +29,8 @@ final class PadLink {
     /// Messages every iPad receives right after connecting, so it starts in sync.
     @ObservationIgnored var snapshot: () -> [MacMessage] = { [] }
     @ObservationIgnored var onMessage: (PadMessage) -> Void = { _ in }
+    /// Receives pointer events off the main actor, the moment they arrive.
+    @ObservationIgnored var onPointer: @Sendable (PointerEvent) -> Void = { _ in }
 
     @ObservationIgnored private let store: any PairedDeviceStore
     @ObservationIgnored private var pairings: [PairedDevice] = []
@@ -131,11 +133,40 @@ final class PadLink {
                 connectedPads.remove(padID)
             }
 
-            for try await message in channel.messages(of: PadMessage.self) {
-                onMessage(message)
+            // Control messages keep their order but wait for the main actor; pointer events
+            // and pings never do.
+            let (control, controlContinuation) = AsyncStream.makeStream(of: PadMessage.self)
+            let deliverControl = Task {
+                for await message in control { onMessage(message) }
             }
+            defer {
+                controlContinuation.finish()
+                deliverControl.cancel()
+            }
+            try await Self.receive(from: channel, replyingThrough: outbox, pointer: onPointer, control: controlContinuation)
         } catch {
             Self.log.debug("iPad session ended: \(error, privacy: .public)")
+        }
+    }
+
+    /// The hot path, deliberately off the main actor: a pointer move goes from the socket
+    /// to `onPointer` without waiting on anything the UI is doing.
+    @concurrent
+    private static func receive(
+        from channel: NetworkChannel,
+        replyingThrough outbox: MessageOutbox<MacMessage>,
+        pointer: @Sendable (PointerEvent) -> Void,
+        control: AsyncStream<PadMessage>.Continuation
+    ) async throws {
+        for try await message in channel.messages(of: PadMessage.self) {
+            switch message {
+            case .pointer(let event):
+                pointer(event)
+            case .ping(let id):
+                outbox.send(.pong(id: id))
+            default:
+                control.yield(message)
+            }
         }
     }
 

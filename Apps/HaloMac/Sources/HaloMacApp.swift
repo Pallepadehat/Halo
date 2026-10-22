@@ -16,6 +16,7 @@ struct HaloMacApp: App {
             MenuContent()
                 .environment(helper.agents)
                 .environment(helper.pads)
+                .environment(helper.trackpad)
         } label: {
             Image(systemName: helper.agents.needsAttention ? "circle.inset.filled" : "circle")
         }
