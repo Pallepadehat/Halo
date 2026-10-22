@@ -61,7 +61,7 @@ Always run `xcodegen generate` after adding files — the `.xcodeproj` is not co
 - **Swift 6**, strict concurrency `complete`. No `@unchecked Sendable` or `nonisolated(unsafe)` without a comment explaining why.
 - **SwiftUI** + **Observation** (`@Observable`), not `ObservableObject`/Combine. UI models are `@MainActor`.
 - **Swift Testing** (`import Testing`, `@Test`, `#expect`) for new tests, not XCTest.
-- Targets: iPadOS 18.0, macOS 15.0 (PRD open question — may change).
+- Targets: iPadOS 26.0+, macOS 26.0+. No availability checks for older OSes.
 - Networking: `Network.framework`. No third-party dependencies without discussing first.
 - Wire protocol is `Codable` enums in `HaloProtocol`. Bump `haloProtocolVersion` on any breaking change. Keep messages small — trackpad events are latency-critical.
 - Keep logic pure and testable in `HaloCore` (e.g. `ModeSuggester` is a pure function of state).
@@ -81,7 +81,7 @@ From the PRD — treat these as requirements, not taste:
 ## Security & distribution
 
 - Pairing: one-time pairing code, end-to-end encryption, paired iPads only. Never accept input events from an unpaired peer.
-- The Mac helper is **not sandboxed** (needs Accessibility for input injection) and ships as a **notarised direct download** with Hardened Runtime — not the Mac App Store.
+- The Mac helper is **not sandboxed** (needs Accessibility for input injection) and ships **only** as a **notarised direct download** with Hardened Runtime. It will never be on the Mac App Store, so App Store sandbox rules do not apply.
 - Agent adapters that can't approve actions safely ship **read-only** (`AgentSession.canApprove = false`).
 
 ## Non-goals (don't build these)
