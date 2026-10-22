@@ -34,7 +34,6 @@ targets:
       properties:
         CFBundleDisplayName: Halo
         UILaunchScreen: {}
-        UIRequiresFullScreen: true
         UISupportedInterfaceOrientations~ipad:
           - UIInterfaceOrientationLandscapeLeft
           - UIInterfaceOrientationLandscapeRight
@@ -62,6 +61,16 @@ targets:
         product: HaloCore
       - package: HaloKit
         product: HaloProtocol
+      - package: HaloKit
+        product: HaloAgents
+      - package: HaloKit
+        product: HaloHookBridge
+      # Ships at Contents/MacOS/halo-hook, next to the helper's own executable.
+      - target: HaloHook
+        embed: true
+        codeSign: true
+        copy:
+          destination: executables
     info:
       path: Apps/HaloMac/Resources/Info.plist
       properties:
@@ -81,6 +90,23 @@ targets:
         ENABLE_APP_SANDBOX: false
         GENERATE_INFOPLIST_FILE: true
 
+  HaloHook:
+    type: tool
+    platform: macOS
+    sources:
+      - Apps/HaloHook/Sources
+    dependencies:
+      - package: HaloKit
+        product: HaloCore
+      - package: HaloKit
+        product: HaloHookBridge
+    settings:
+      base:
+        PRODUCT_NAME: halo-hook
+        PRODUCT_BUNDLE_IDENTIFIER: dk.patrickjak.halo.hook
+        ENABLE_HARDENED_RUNTIME: true
+        SKIP_INSTALL: true
+
 schemes:
   HaloPad:
     build:
@@ -94,3 +120,7 @@ schemes:
     build:
       targets:
         HaloMac: all
+    test:
+      targets:
+        - package: HaloKit/HaloHookBridgeTests
+        - package: HaloKit/HaloAgentsTests

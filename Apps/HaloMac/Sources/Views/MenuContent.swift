@@ -1,0 +1,59 @@
+import HaloCore
+import SwiftUI
+
+struct MenuContent: View {
+    @Environment(AgentHub.self) private var agents
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            SessionsSection(sessions: agents.sessions)
+            Divider()
+            IntegrationsSection()
+            Divider()
+            Button("Quit Halo") { NSApplication.shared.terminate(nil) }
+                .keyboardShortcut("q")
+                .buttonStyle(.plain)
+                .foregroundStyle(.secondary)
+        }
+        .padding(14)
+        .frame(width: 340)
+    }
+}
+
+private struct SessionsSection: View {
+    let sessions: [AgentSession]
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            SectionHeader("Agents")
+            if sessions.isEmpty {
+                Text("No agents running")
+                    .foregroundStyle(.secondary)
+            } else {
+                ForEach(sessions) { session in
+                    AgentSessionRow(session: session)
+                }
+            }
+        }
+    }
+}
+
+struct SectionHeader: View {
+    let title: LocalizedStringKey
+
+    init(_ title: LocalizedStringKey) {
+        self.title = title
+    }
+
+    var body: some View {
+        Text(title)
+            .font(.caption.weight(.semibold))
+            .foregroundStyle(.secondary)
+            .textCase(.uppercase)
+    }
+}
+
+#Preview {
+    MenuContent()
+        .environment(AgentHub())
+}
