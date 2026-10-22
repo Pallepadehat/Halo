@@ -2,21 +2,27 @@ import HaloCore
 import SwiftUI
 
 /// The Mac's Dock, pinned beneath every page in a Liquid Glass tray. Pages slide behind it;
-/// it never moves. Tap an app to open it on the Mac.
+/// it never moves. Like the Mac's own Dock, icons shrink to fit however many apps there are.
+/// Tap an app to open it on the Mac.
 struct DockBar: View {
     @Environment(PadModel.self) private var model
     @Environment(DashboardStore.self) private var store
 
-    static let iconSide: CGFloat = 64
+    /// The widest the tray may get, from the surrounding layout.
+    let availableWidth: CGFloat
+
+    static let maximumIconSide: CGFloat = 64
+    static let minimumIconSide: CGFloat = 40
 
     var body: some View {
         if !model.launcher.isEmpty {
-            HStack(spacing: 18) {
+            let side = iconSide
+            HStack(spacing: side * 0.28) {
                 ForEach(Array(model.launcher.enumerated()), id: \.element.id) { index, item in
-                    AppButton(item: item, icon: model.icons[item.id], side: Self.iconSide) { model.launch(item) }
+                    AppButton(item: item, icon: model.icons[item.id], side: side) { model.launch(item) }
                     // Finder stands apart, as it does in the Mac's own Dock.
                     if index == 0, model.launcher.count > 1 {
-                        Capsule().fill(.inkTertiary).frame(width: 1, height: Self.iconSide * 0.55)
+                        Capsule().fill(.inkTertiary).frame(width: 1, height: side * 0.55)
                     }
                 }
             }
@@ -26,6 +32,15 @@ struct DockBar: View {
             .opacity(store.isEditing ? 0.6 : 1)
             .transition(.move(edge: .bottom).combined(with: .opacity))
         }
+    }
+
+    /// Solves `n·side + gaps + divider + padding = availableWidth` for the icon side.
+    private var iconSide: CGFloat {
+        let count = CGFloat(model.launcher.count)
+        let fixed: CGFloat = 28 + 1 // tray padding and Finder's divider
+        let perIcon = 1 + 0.28 // icon plus the gap after it
+        let side = (availableWidth - fixed) / (count * perIcon + 0.28)
+        return min(max(side, Self.minimumIconSide), Self.maximumIconSide)
     }
 }
 

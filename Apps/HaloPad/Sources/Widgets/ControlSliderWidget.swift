@@ -13,62 +13,70 @@ struct ControlSliderWidget: View {
     @State private var dragStart: Double?
 
     var body: some View {
-        if let value {
-            VStack(spacing: 12) {
-                Text(value.formatted(.percent.precision(.fractionLength(0))))
+        GeometryReader { geometry in
+            let showsCaptions = geometry.size.width >= 64
+            VStack(spacing: 10) {
+                Text(value.map { $0.formatted(.percent.precision(.fractionLength(0))) } ?? "–")
                     .font(.caption.monospacedDigit())
                     .foregroundStyle(.inkSecondary)
-                    .contentTransition(.numericText(value: value))
-                slider(value: value)
+                    .contentTransition(.numericText(value: value ?? 0))
+
+                track
+                    .frame(maxWidth: min(geometry.size.width, 64))
+
                 Button(action: iconTapped) {
-                    Image(systemName: symbol(for: value))
+                    Image(systemName: symbol)
                         .font(.system(size: 17))
-                        .foregroundStyle(.ink)
-                        .frame(width: 44, height: 32)
+                        .foregroundStyle(value == nil ? .inkTertiary : .ink)
+                        .frame(width: 44, height: 30)
                         .contentTransition(.symbolEffect(.replace))
                 }
                 .buttonStyle(.plain)
-                .disabled(control == .brightness)
-                Text(deviceName ?? "")
-                    .font(.system(size: 9))
-                    .foregroundStyle(.inkTertiary)
-                    .lineLimit(1)
+                .disabled(control == .brightness || value == nil)
+
+                if showsCaptions {
+                    Text(caption)
+                        .font(.system(size: 9, weight: .medium))
+                        .foregroundStyle(.inkTertiary)
+                        .multilineTextAlignment(.center)
+                        .lineLimit(2)
+                }
             }
-        } else {
-            WidgetUnavailable(
-                symbol: control == .brightness ? "sun.max" : "speaker.slash",
-                message: control == .brightness ? "Brightness works with built-in and Apple displays." : "No output device"
-            )
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
     }
 
-    private func slider(value: Double) -> some View {
+    /// Unavailable controls keep their shape, just empty and quiet, so the page never reflows.
+    private var track: some View {
         GeometryReader { geometry in
+            let radius = min(geometry.size.width / 2.4, 26)
             ZStack(alignment: .bottom) {
-                Rectangle().fill(.white.opacity(0.1))
+                Rectangle().fill(.white.opacity(value == nil ? 0.04 : 0.1))
                 Rectangle()
                     .fill(.ink)
-                    .frame(height: geometry.size.height * value)
+                    .frame(height: geometry.size.height * (value ?? 0))
             }
-            .clipShape(.rect(cornerRadius: min(geometry.size.width / 2.4, 26), style: .continuous))
-            .glassEffect(.regular, in: .rect(cornerRadius: min(geometry.size.width / 2.4, 26), style: .continuous))
+            .clipShape(.rect(cornerRadius: radius, style: .continuous))
+            .glassEffect(.regular, in: .rect(cornerRadius: radius, style: .continuous))
             .contentShape(.rect)
             .gesture(
                 DragGesture(minimumDistance: 0)
                     .onChanged { drag in
+                        guard let value else { return }
                         let start = dragStart ?? value
                         dragStart = start
                         set(min(max(start - drag.translation.height / geometry.size.height, 0), 1))
                     }
-                    .onEnded { _ in dragStart = nil }
+                    .onEnded { _ in dragStart = nil },
+                isEnabled: value != nil
             )
-            .sensoryFeedback(.selection, trigger: (value * 10).rounded())
+            .sensoryFeedback(.selection, trigger: ((value ?? 0) * 10).rounded())
         }
-        .frame(maxWidth: 64)
         .accessibilityElement()
         .accessibilityLabel(control == .brightness ? "Brightness" : "Volume")
-        .accessibilityValue(value.formatted(.percent.precision(.fractionLength(0))))
+        .accessibilityValue(value.map { $0.formatted(.percent.precision(.fractionLength(0))) } ?? String(localized: "Unavailable"))
         .accessibilityAdjustableAction { direction in
+            guard let value else { return }
             set(min(max(value + (direction == .increment ? 0.1 : -0.1), 0), 1))
         }
     }
@@ -80,8 +88,16 @@ struct ControlSliderWidget: View {
         }
     }
 
-    private var deviceName: String? {
-        control == .brightness ? model.controls.displayName : model.controls.outputName
+    private var caption: String {
+        switch control {
+        case .brightness:
+            guard model.controls.brightness != nil else { return String(localized: "Unavailable") }
+            let name = model.controls.displayName ?? String(localized: "Display")
+            // Honest about how a non-Apple display is dimmed.
+            return model.controls.isBrightnessSoftware ? String(localized: "\(name)\nSoftware") : name
+        case .volume:
+            return model.controls.outputName ?? String(localized: "No Output")
+        }
     }
 
     private func set(_ newValue: Double) {
@@ -95,7 +111,8 @@ struct ControlSliderWidget: View {
         if control == .volume { model.toggleMute() }
     }
 
-    private func symbol(for value: Double) -> String {
+    private var symbol: String {
+        guard let value else { return control == .brightness ? "sun.max" : "speaker.slash" }
         switch control {
         case .brightness:
             return value < 0.35 ? "sun.min" : "sun.max"

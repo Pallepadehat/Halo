@@ -25,7 +25,7 @@ enum DemoData {
             .launcher(apps.map { LaunchItem(id: $0.0, name: $0.1) }),
             .nowPlaying(track),
             .artwork(trackID: "demo", jpeg: artwork()),
-            .controls(SystemControls(volume: 0.56, isMuted: false, outputName: "Studio Display", brightness: 0.78, displayName: "Studio Display")),
+            .controls(controls()),
             .deck(deck()),
             .upNext(UpcomingEvent(title: "Design review", start: .now.addingTimeInterval(25 * 60), end: .now.addingTimeInterval(55 * 60),
                                   isAllDay: false, location: nil, calendarColor: "#FF9F0A")),
@@ -63,6 +63,21 @@ enum DemoData {
             AgentSession(id: AgentSession.id(tool: .cursor, nativeID: "demo-3"), tool: .cursor, title: "Prepare the next release",
                          project: "Orbit", status: .running),
         ]
+    }
+
+    /// `-HaloDemoBrightness software|none` previews a non-Apple display.
+    static func controls() -> SystemControls {
+        let arguments = ProcessInfo.processInfo.arguments
+        let mode = arguments.firstIndex(of: "-HaloDemoBrightness").flatMap { arguments.dropFirst($0 + 1).first }
+        switch mode {
+        case "software":
+            return SystemControls(volume: 0.56, isMuted: false, outputName: "MacBook Pro Speakers", brightness: 0.7,
+                                  displayName: "DELL U2720Q", isBrightnessSoftware: true)
+        case "none":
+            return SystemControls(volume: 0.56, isMuted: false, outputName: "MacBook Pro Speakers", brightness: nil, displayName: nil)
+        default:
+            return SystemControls(volume: 0.56, isMuted: false, outputName: "Studio Display", brightness: 0.78, displayName: "Studio Display")
+        }
     }
 
     static func deck() -> [DeckAction] {

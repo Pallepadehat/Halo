@@ -139,16 +139,25 @@ private struct WidgetContainer: View {
     }
 }
 
-/// The Home Screen jiggle: tiny, out of phase per widget, so the page feels alive while editing.
+/// The Home Screen jiggle: a continuous, tiny rotation, out of phase per widget so the page
+/// feels alive rather than mechanical. Time-driven, so it never stalls or snaps, and the
+/// widget's own view keeps its identity when editing starts and stops.
 private struct Wiggle: ViewModifier {
     let isActive: Bool
     let seed: Int
 
+    /// About three wobbles a second, a little under a degree each way, as on the Home Screen.
+    private static let frequency = 3.1
+    private static let amplitude = 0.75
+
     func body(content: Content) -> some View {
-        content.phaseAnimator([-1.0, 1.0], trigger: isActive) { view, phase in
-            view.rotationEffect(.degrees(isActive ? phase * 0.6 : 0))
-        } animation: { _ in
-            isActive ? .easeInOut(duration: 0.12 + Double(abs(seed) % 5) * 0.01) : .default
+        TimelineView(.animation(paused: !isActive)) { context in
+            let phase = Double(abs(seed) % 997) / 997 * 2 * .pi
+            let speed = Self.frequency * (0.92 + Double(abs(seed) % 7) * 0.025)
+            let angle = sin(context.date.timeIntervalSinceReferenceDate * 2 * .pi * speed + phase)
+            content
+                .rotationEffect(.degrees(isActive ? angle * Self.amplitude : 0))
+                .animation(.easeOut(duration: 0.2), value: isActive)
         }
     }
 }

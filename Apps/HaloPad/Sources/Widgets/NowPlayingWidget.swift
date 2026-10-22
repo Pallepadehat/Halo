@@ -7,50 +7,61 @@ struct NowPlayingWidget: View {
 
     var body: some View {
         GeometryReader { geometry in
-            let isTall = geometry.size.height > 160
-            // Too narrow for one row: artwork and title above, controls beneath.
-            let isCompact = geometry.size.width < 440
+            let size = geometry.size
             Group {
-                if isCompact {
+                switch Layout(size) {
+                case .row:
+                    // One line, as on the Home page: artwork, title, controls.
+                    HStack(spacing: 14) {
+                        Artwork(image: model.nowPlayingArtwork)
+                            .frame(width: min(size.height * 0.8, 72), height: min(size.height * 0.8, 72))
+                        TrackLabel(track: model.nowPlaying, showsSource: size.height >= 80, showsArtist: size.height >= 60)
+                        Spacer(minLength: 8)
+                        transport(skipButtons: size.width >= 320)
+                    }
+                case .stacked:
+                    // Narrow and tall: artwork and title above, controls beneath.
                     VStack(alignment: .leading, spacing: 12) {
                         HStack(spacing: 14) {
                             Artwork(image: model.nowPlayingArtwork)
-                                .frame(width: compactArtwork(in: geometry.size), height: compactArtwork(in: geometry.size))
-                            TrackLabel(track: model.nowPlaying)
+                                .frame(width: min(size.height * 0.34, 72), height: min(size.height * 0.34, 72))
+                            TrackLabel(track: model.nowPlaying, showsSource: true, showsArtist: true)
                         }
-                        transport
+                        transport(skipButtons: true)
                             .frame(maxWidth: .infinity)
-                        if isTall, let track = model.nowPlaying { Progress(track: track) }
+                        if size.height > 210, let track = model.nowPlaying { Progress(track: track) }
                     }
-                } else {
+                case .wide:
                     VStack(alignment: .leading, spacing: 14) {
                         HStack(spacing: 16) {
                             Artwork(image: model.nowPlayingArtwork)
-                                .frame(width: artworkSide(in: geometry.size), height: artworkSide(in: geometry.size))
-                            TrackLabel(track: model.nowPlaying)
+                                .frame(width: min(size.height * 0.55, 120), height: min(size.height * 0.55, 120))
+                            TrackLabel(track: model.nowPlaying, showsSource: true, showsArtist: true)
                             Spacer(minLength: 12)
-                            transport
+                            transport(skipButtons: true)
                         }
-                        if isTall, let track = model.nowPlaying { Progress(track: track) }
+                        if let track = model.nowPlaying { Progress(track: track) }
                     }
                 }
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: isTall ? .top : .center)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
             .padding(.horizontal, 4)
         }
         .animation(.halo, value: model.nowPlaying?.trackID)
     }
 
-    private var transport: some View {
-        Transport(isPlaying: model.nowPlaying?.isPlaying == true, isEnabled: model.nowPlaying != nil) { model.perform($0) }
+    private enum Layout {
+        case row, stacked, wide
+
+        init(_ size: CGSize) {
+            if size.height < 130 { self = .row } else if size.width < 440 { self = .stacked } else { self = .wide }
+        }
     }
 
-    private func artworkSide(in size: CGSize) -> CGFloat {
-        min(size.height > 160 ? size.height * 0.55 : size.height * 0.78, 120)
-    }
-
-    private func compactArtwork(in size: CGSize) -> CGFloat {
-        min(size.height * 0.36, 72)
+    private func transport(skipButtons: Bool) -> some View {
+        Transport(isPlaying: model.nowPlaying?.isPlaying == true, isEnabled: model.nowPlaying != nil, showsSkip: skipButtons) {
+            model.perform($0)
+        }
     }
 }
 
@@ -79,16 +90,20 @@ private struct Artwork: View {
 
 private struct TrackLabel: View {
     let track: NowPlaying?
+    var showsSource = true
+    var showsArtist = true
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(track.map { "\($0.source.displayName) · Mac" } ?? String(localized: "Mac"))
-                .eyebrowStyle()
-                .foregroundStyle(.inkTertiary)
+        VStack(alignment: .leading, spacing: 3) {
+            if showsSource {
+                Text(track.map { "\($0.source.displayName) · Mac" } ?? String(localized: "Mac"))
+                    .eyebrowStyle()
+                    .foregroundStyle(.inkTertiary)
+            }
             Text(track?.title ?? String(localized: "Not Playing"))
                 .font(.headline.weight(.medium))
                 .foregroundStyle(.ink)
-            if let artist = track?.artist, !artist.isEmpty {
+            if showsArtist, let artist = track?.artist, !artist.isEmpty {
                 Text(artist)
                     .font(.subheadline)
                     .foregroundStyle(.inkSecondary)
@@ -101,14 +116,15 @@ private struct TrackLabel: View {
 private struct Transport: View {
     let isPlaying: Bool
     let isEnabled: Bool
+    var showsSkip = true
     let perform: (MediaCommand) -> Void
 
     var body: some View {
-        HStack(spacing: 22) {
-            button("backward.end.fill", .previous, size: 19)
+        HStack(spacing: 14) {
+            if showsSkip { button("backward.end.fill", .previous, size: 19) }
             button(isPlaying ? "pause.fill" : "play.fill", .playPause, size: 26)
                 .contentTransition(.symbolEffect(.replace))
-            button("forward.end.fill", .next, size: 19)
+            if showsSkip { button("forward.end.fill", .next, size: 19) }
         }
         .foregroundStyle(.ink)
         .disabled(!isEnabled)

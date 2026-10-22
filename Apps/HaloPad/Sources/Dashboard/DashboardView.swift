@@ -11,27 +11,29 @@ struct DashboardView: View {
         ZStack {
             Backdrop()
 
-            VStack(spacing: 0) {
-                Group {
-                    if store.isEditing {
-                        EditBar().transition(.opacity.combined(with: .move(edge: .top)))
-                    } else {
-                        StatusBar().transition(.opacity)
+            GeometryReader { screen in
+                VStack(spacing: 0) {
+                    Group {
+                        if store.isEditing {
+                            EditBar().transition(.opacity.combined(with: .move(edge: .top)))
+                        } else {
+                            StatusBar().transition(.opacity)
+                        }
                     }
+                    .frame(height: 56)
+
+                    Pager(pages: store.pages, selection: $store.currentPageID, isEnabled: !store.isWidgetCapturingTouches) { page in
+                        PageGridView(page: page)
+                            .padding(.horizontal, 32)
+                            .padding(.top, 8)
+                    }
+
+                    PageIndicator()
+                        .frame(height: 36)
+
+                    DockBar(availableWidth: screen.size.width - 64)
+                        .padding(.bottom, 20)
                 }
-                .frame(height: 56)
-
-                Pager(pages: store.pages, selection: $store.currentPageID, isEnabled: !store.isWidgetCapturingTouches) { page in
-                    PageGridView(page: page)
-                        .padding(.horizontal, 32)
-                        .padding(.top, 8)
-                }
-
-                PageIndicator()
-                    .frame(height: 36)
-
-                DockBar()
-                    .padding(.bottom, 20)
             }
             .offset(ambience.pixelShift)
             .animation(.easeInOut(duration: 8), value: ambience.pixelShift)

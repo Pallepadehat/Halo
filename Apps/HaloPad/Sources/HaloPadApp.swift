@@ -18,6 +18,9 @@ struct HaloPadApp: App {
     var body: some Scene {
         WindowGroup {
             RootView()
+                #if DEBUG
+                .modifier(DebugFrame.fromArguments)
+                #endif
                 .environment(model)
                 .environment(model.link)
                 .environment(store)
@@ -74,3 +77,35 @@ struct RootView: View {
         .animation(.halo, value: link.status == .unpaired)
     }
 }
+
+#if DEBUG
+/// `-HaloFrame 1210x834` lays the app out at an exact size, rotated and scaled to fit the
+/// screen, so landscape layouts can be checked on a simulator stuck in portrait.
+private struct DebugFrame: ViewModifier {
+    let size: CGSize?
+
+    static var fromArguments: DebugFrame {
+        let arguments = ProcessInfo.processInfo.arguments
+        guard let flag = arguments.firstIndex(of: "-HaloFrame"), arguments.indices.contains(flag + 1) else { return DebugFrame(size: nil) }
+        let parts = arguments[flag + 1].split(separator: "x").compactMap { Double($0) }
+        return DebugFrame(size: parts.count == 2 ? CGSize(width: parts[0], height: parts[1]) : nil)
+    }
+
+    func body(content: Content) -> some View {
+        if let size {
+            GeometryReader { screen in
+                let scale = min(screen.size.width / size.height, screen.size.height / size.width)
+                content
+                    .frame(width: size.width, height: size.height)
+                    .clipped()
+                    .rotationEffect(.degrees(90))
+                    .scaleEffect(scale)
+                    .frame(width: screen.size.width, height: screen.size.height)
+            }
+            .ignoresSafeArea()
+        } else {
+            content
+        }
+    }
+}
+#endif

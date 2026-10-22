@@ -12,7 +12,12 @@ struct StatusBar: View {
         HStack(spacing: 20) {
             AgentIndicator(session: model.leadingAgent) { store.reveal(.agents) }
             Spacer(minLength: 24)
-            MetricsLine(metrics: model.metrics)
+            // The full line when there's room, then the essentials, then nothing: never clipped.
+            ViewThatFits(in: .horizontal) {
+                MetricsLine(metrics: model.metrics, detail: .full)
+                MetricsLine(metrics: model.metrics, detail: .essentials)
+                Color.clear.frame(width: 0)
+            }
             HStack(spacing: 4) {
                 StatusButton(symbol: ambience.isNight ? "moon.fill" : "moon", label: "Night") { ambience.toggleNight() }
                 StatusButton(symbol: "slider.horizontal.3", label: "Edit Pages") { store.isEditing = true }
@@ -48,15 +53,24 @@ private struct AgentIndicator: View {
 }
 
 private struct MetricsLine: View {
+    enum Detail {
+        case full, essentials
+    }
+
     let metrics: SystemMetrics
+    let detail: Detail
 
     var body: some View {
         HStack(spacing: 14) {
             Text("CPU \(percent(metrics.cpu))")
             Text("RAM \(percent(metrics.memory))")
-            Text("DISK \(bytes(metrics.freeStorageBytes)) FREE")
-            Text("NET ↓\(bytes(metrics.networkBytesInPerSecond))/S ↑\(bytes(metrics.networkBytesOutPerSecond))/S")
+            if detail == .full {
+                Text("DISK \(bytes(metrics.freeStorageBytes)) FREE")
+                Text("NET ↓\(bytes(metrics.networkBytesInPerSecond))/S ↑\(bytes(metrics.networkBytesOutPerSecond))/S")
+            }
         }
+        .lineLimit(1)
+        .fixedSize()
         .font(.system(size: 10, weight: .medium, design: .monospaced))
         .tracking(0.4)
         .textCase(.uppercase)
@@ -104,7 +118,9 @@ private struct MacBadge: View {
                     .frame(width: 6, height: 6)
                 Text(title)
                     .foregroundStyle(.ink)
+                    .lineLimit(1)
             }
+            .fixedSize()
         }
         .buttonStyle(.plain)
     }
