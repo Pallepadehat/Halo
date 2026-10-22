@@ -3,7 +3,7 @@ import Testing
 
 @Suite struct ModeSuggesterTests {
     let suggester = ModeSuggester()
-    let waiting = AgentSession(id: "1", tool: .claudeCode, title: "Fix tests", status: .waitingForApproval)
+    let waiting = AgentSession(id: "claude-code:1", tool: .claudeCode, title: "Fix tests", status: .waitingForApproval)
 
     @Test func surfacesAgentsWhenOneIsWaiting() {
         #expect(suggester.suggest(current: .zen, userOverride: nil, agents: [waiting]) == .agents)

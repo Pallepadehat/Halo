@@ -16,7 +16,8 @@ public enum MacMessage: Codable, Sendable, Equatable {
 public enum PadMessage: Codable, Sendable, Equatable {
     case hello(deviceName: String, protocolVersion: Int)
     case pointer(PointerEvent)
-    case agentAction(sessionID: String, action: AgentAction)
+    case resolveApproval(id: ApprovalRequest.ID, decision: ApprovalDecision)
+    case agentAction(sessionID: AgentSession.ID, action: AgentAction)
     case runAction(id: String)
 }
 
@@ -32,8 +33,6 @@ public enum MouseButton: String, Codable, Sendable {
 }
 
 public enum AgentAction: Codable, Sendable, Equatable {
-    case approve
-    case deny
     case reply(String)
     case bringForward
 }
