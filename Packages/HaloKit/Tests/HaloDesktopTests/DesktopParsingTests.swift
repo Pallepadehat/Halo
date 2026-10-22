@@ -86,7 +86,7 @@ import HaloCore
     }
 
     @Test func prefersTheSoonestTimedEventOverAllDayOnes() {
-        let next = UpNext.mostRelevant([event("Holiday", in: -60, allDay: true), event("Review", in: 90), event("Standup", in: 15)])
+        let next = UpcomingEvent.mostRelevant([event("Holiday", in: -60, allDay: true), event("Review", in: 90), event("Standup", in: 15)], at: now)
         #expect(next?.title == "Standup")
     }
 }

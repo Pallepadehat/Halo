@@ -142,3 +142,46 @@ public struct UpcomingEvent: Codable, Sendable, Hashable {
         self.calendarColor = calendarColor
     }
 }
+
+extension UpcomingEvent {
+    /// When the event is, as the clock says it: relative to the day, never just a time that
+    /// could be today's or tomorrow's.
+    public enum Timing: Equatable, Sendable {
+        case now
+        case inMinutes(Int)
+        case laterToday(Date)
+        case allDayToday
+        case tomorrow(Date)
+        case allDayTomorrow
+        /// Another day this week or beyond, from its start.
+        case later(Date)
+        case allDayLater(Date)
+    }
+
+    /// Within this, a timed event counts down in minutes rather than giving its time.
+    public static let countdownWindow: TimeInterval = 60 * 60
+
+    public func timing(at now: Date, calendar: Calendar = .current) -> Timing {
+        if start <= now, end > now { return isAllDay ? .allDayToday : .now }
+        let tomorrow = calendar.date(byAdding: .day, value: 1, to: now) ?? now.addingTimeInterval(86_400)
+        let isToday = calendar.isDate(start, inSameDayAs: now)
+        let isTomorrow = calendar.isDate(start, inSameDayAs: tomorrow)
+        if isAllDay {
+            return isToday ? .allDayToday : isTomorrow ? .allDayTomorrow : .allDayLater(start)
+        }
+        let wait = start.timeIntervalSince(now)
+        if wait < Self.countdownWindow { return .inMinutes(max(Int((wait / 60).rounded(.up)), 1)) }
+        return isToday ? .laterToday(start) : isTomorrow ? .tomorrow(start) : .later(start)
+    }
+
+    /// The event the clock should show: today's before tomorrow's, and within a day, timed
+    /// events before all-day ones, then the soonest.
+    public static func mostRelevant(_ events: [UpcomingEvent], at now: Date, calendar: Calendar = .current) -> UpcomingEvent? {
+        func day(_ event: UpcomingEvent) -> Date { calendar.startOfDay(for: max(event.start, now)) }
+        return events.min { lhs, rhs in
+            if day(lhs) != day(rhs) { return day(lhs) < day(rhs) }
+            if lhs.isAllDay != rhs.isAllDay { return !lhs.isAllDay }
+            return lhs.start < rhs.start
+        }
+    }
+}

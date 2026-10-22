@@ -57,11 +57,16 @@ private struct UpNextPill: View {
     }
 
     private var timing: String {
-        if event.isAllDay { return String(localized: "Today") }
-        if event.start <= now { return String(localized: "Now") }
-        let minutes = Int(event.start.timeIntervalSince(now) / 60)
-        if minutes < 60 { return String(localized: "in \(max(minutes, 1)) min") }
-        return event.start.formatted(date: .omitted, time: .shortened)
+        switch event.timing(at: now) {
+        case .now: String(localized: "Now")
+        case .inMinutes(let minutes): String(localized: "in \(minutes) min")
+        case .laterToday(let start): start.formatted(date: .omitted, time: .shortened)
+        case .allDayToday: String(localized: "Today")
+        case .tomorrow(let start): String(localized: "Tomorrow \(start.formatted(date: .omitted, time: .shortened))")
+        case .allDayTomorrow: String(localized: "Tomorrow")
+        case .later(let start): start.formatted(.dateTime.weekday(.wide).hour().minute())
+        case .allDayLater(let start): start.formatted(.dateTime.weekday(.wide))
+        }
     }
 }
 

@@ -40,15 +40,7 @@ public final class UpNext {
                     calendarColor: event.calendar.flatMap { NSColor(cgColor: $0.cgColor)?.hexString }
                 )
             }
-        return Self.mostRelevant(events)
-    }
-
-    /// Timed events beat all-day ones; among those, the soonest.
-    nonisolated static func mostRelevant(_ events: [UpcomingEvent]) -> UpcomingEvent? {
-        events.min { lhs, rhs in
-            if lhs.isAllDay != rhs.isAllDay { return !lhs.isAllDay }
-            return lhs.start < rhs.start
-        }
+        return UpcomingEvent.mostRelevant(events, at: date)
     }
 }
 
