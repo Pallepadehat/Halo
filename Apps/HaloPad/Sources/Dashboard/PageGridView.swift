@@ -26,7 +26,7 @@ struct PageGridView: View {
                 if store.isEditing, let preview {
                     let isValid = page.isAvailable(preview.frame, ignoring: preview.id)
                     let rect = geometry.rect(for: preview.frame)
-                    RoundedRectangle(cornerRadius: 26, style: .continuous)
+                    RoundedRectangle(cornerRadius: WidgetCard.cornerRadius, style: .continuous)
                         .fill((isValid ? Color.white : Color.red).opacity(0.1))
                         .strokeBorder((isValid ? Color.white : Color.red).opacity(0.4), style: StrokeStyle(lineWidth: 1.5, dash: [6, 6]))
                         .frame(width: rect.width, height: rect.height)
@@ -61,7 +61,7 @@ private struct WidgetContainer: View {
     @State private var dragOffset: CGSize = .zero
     @State private var isDragging = false
 
-    private var shape: RoundedRectangle { RoundedRectangle(cornerRadius: 26, style: .continuous) }
+    private var shape: RoundedRectangle { RoundedRectangle(cornerRadius: WidgetCard.cornerRadius, style: .continuous) }
 
     var body: some View {
         WidgetView(widget: widget)

@@ -3,7 +3,9 @@ import Foundation
 import Testing
 @testable import HaloTransport
 
-@Suite(.serialized) struct KeychainPairedDeviceStoreTests {
+/// Skipped on CI: hosted runners' keychains can't be relied on to accept new items.
+@Suite(.serialized, .enabled(if: ProcessInfo.processInfo.environment["CI"] == nil))
+struct KeychainPairedDeviceStoreTests {
     let store = KeychainPairedDeviceStore(service: "app.halo.tests.\(UUID().uuidString)")
 
     @Test func savesLoadsAndRemovesPairings() throws {

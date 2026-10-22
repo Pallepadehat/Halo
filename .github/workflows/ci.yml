@@ -1,0 +1,32 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build-and-test:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Use the newest Xcode
+        run: sudo xcode-select -s "$(ls -d /Applications/Xcode*.app | sort -V | tail -1)"
+      - name: Install XcodeGen
+        run: brew install xcodegen
+      - name: Test the shared package
+        run: swift test --package-path Packages/HaloKit
+      - name: Generate the project
+        run: xcodegen generate
+      - name: Build the Mac helper
+        run: |
+          xcodebuild build -project Halo.xcodeproj -scheme HaloMac -destination 'platform=macOS' \
+            -skipMacroValidation -skipPackagePluginValidation \
+            CODE_SIGN_IDENTITY=- CODE_SIGNING_ALLOWED=NO DEVELOPMENT_TEAM= \
+            | xcbeautify || exit ${PIPESTATUS[0]}
+      - name: Build the iPad app
+        run: |
+          xcodebuild build -project Halo.xcodeproj -scheme HaloPad -destination 'generic/platform=iOS Simulator' \
+            -skipMacroValidation -skipPackagePluginValidation \
+            CODE_SIGNING_ALLOWED=NO DEVELOPMENT_TEAM= \
+            | xcbeautify || exit ${PIPESTATUS[0]}

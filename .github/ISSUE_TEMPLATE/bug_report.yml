@@ -1,0 +1,23 @@
+name: Bug report
+description: Something on the iPad or the Mac didn't do what it should.
+labels: [bug]
+body:
+  - type: textarea
+    attributes:
+      label: What happened?
+      description: And what did you expect? Screenshots or recordings help a lot.
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: How can we make it happen?
+      placeholder: "1. Pair the iPad\n2. Add a Trackpad widget\n3. ..."
+  - type: input
+    attributes:
+      label: Devices and versions
+      placeholder: iPad Pro 11-inch (M4), iPadOS 26.1 · MacBook Air M3, macOS 26.1
+  - type: textarea
+    attributes:
+      label: Helper log (optional)
+      description: "`/usr/bin/log show --last 10m --predicate 'subsystem == \"app.halo\"'`"
+      render: text

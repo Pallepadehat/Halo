@@ -1,0 +1,10 @@
+name: Idea
+description: A widget, a gesture, an agent tool or anything else.
+labels: [idea]
+body:
+  - type: textarea
+    attributes:
+      label: What should Halo do?
+      description: Sketches and mock-ups welcome.
+    validations:
+      required: true

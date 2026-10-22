@@ -102,7 +102,13 @@ The look is Apple-native and quiet. Match it in new work:
 
 ## Widgets and pages
 
-- **Adding a widget:** add a `WidgetKind` case (title, summary, symbol, size limits) in `HaloDashboard`, then a view in `Apps/HaloPad/Sources/Widgets`, routed in `WidgetView`.
+- **Sizes are families, like Apple's:** Slim (1×3), Small (3×2), Medium (6×2), Large (6×4) and Extra Large (12×4), on a 12×6 grid. Each `WidgetKind` lists the families it's designed for. Never free-form sizes.
+- **First launch is empty:** `Dashboard.empty` shows `HelloView`, and holding opens edit mode with the gallery. `Dashboard.showcase` is the full layout used by the demo and the README screenshots.
+- **The gallery renders the real widget** (`LivePreview`) at the exact size its family has on this iPad. Any widget must therefore look right with no interaction and demo data.
+- **Per-widget options** (`WidgetOptions`) hold settings such as the Deck's chosen actions or trackpad gesture mappings. Add new options as optionals so saved layouts still decode. Kinds with settings set `isConfigurable` and get a section in `WidgetSettings`.
+- **Grid changes need a version bump:** if the grid itself changes, bump `Dashboard.version`. Older layouts then start fresh rather than being misread.
+- **Platters:** information widgets sit on a clear Liquid Glass card (`WidgetKind.sitsOnACard`). The clock and sliders float free, and the trackpad is its own glass.
+- **Adding a widget:** add a `WidgetKind` case (title, summary, symbol, families, default family) in `HaloDashboard`, then a view in `Apps/HaloPad/Sources/Widgets`, routed in `WidgetView`.
 - **Removing a kind is safe:** `DashboardPage` decodes leniently and skips unknown kinds.
 - **Layout rules** live in `DashboardPage` (add, move, resize, collisions) and are unit-tested. Views only translate gestures through `GridGeometry`.
 - **Touch ownership:** a widget that owns its touches (the trackpad) sets `DashboardStore.isWidgetCapturingTouches`, so the pager stops paging.
@@ -117,6 +123,13 @@ The look is Apple-native and quiet. Match it in new work:
 - **AppleScript:** never compile a script that names an app unless `NSRunningApplication` says it's running. Compiling alone makes macOS look the app up, and it asks "Where is Spotify?" if it isn't installed.
 - **Deck:** built-ins, every Shortcut (`shortcuts list` / `run`), and executables in `~/Library/Application Support/Halo/Scripts`. macOS has no API for Do Not Disturb; a Shortcut using "Set Focus" covers it.
 - **Calendar** uses EventKit (`com.apple.security.personal-information.calendars`).
+
+## Releases, updates and branding
+
+- The Mac helper updates itself with **Sparkle**: `Updates` (Release builds only), `SUFeedURL` pointing at the latest GitHub release's `appcast.xml`, and EdDSA-signed appcasts (`SUPublicEDKey` in `project.yml`).
+- `scripts/build.sh` builds the helper (`HALO_SIGN=developer-id` re-signs Sparkle's helpers and `halo-hook`), `make-dmg.sh` packs and notarizes it, `release.sh` publishes the GitHub release with the appcast, and `install.sh` is the one-line installer. `CURRENT_PROJECT_VERSION` follows `MARKETING_VERSION`, because Sparkle compares build numbers.
+- The icon (`scripts/icon/AppIcon.swift`) and the banner (`scripts/banner/Banner.swift`) are drawn in code. Regenerate them with `make-icons.sh` and `make-banner.sh`. README screenshots come from `-HaloDemo <page> -HaloFrame 1366x1024`, rotated and saved as JPEG in `docs/images`.
+- **Voice:** "Halo. Your Mac, at your side." Plain, calm, second person, like an Apple product page. No exclamation marks in the UI.
 
 ## Pulse
 
