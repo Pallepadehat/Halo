@@ -1,28 +1,30 @@
 import HaloCore
 import SwiftUI
 
-/// The Mac's Dock on the iPad. Tap an app to open it on the Mac.
-struct DockWidget: View {
+/// The Mac's Dock, pinned beneath every page in a Liquid Glass tray. Pages slide behind it;
+/// it never moves. Tap an app to open it on the Mac.
+struct DockBar: View {
     @Environment(PadModel.self) private var model
+    @Environment(DashboardStore.self) private var store
+
+    static let iconSide: CGFloat = 64
 
     var body: some View {
-        GeometryReader { geometry in
-            let side = min(geometry.size.height * 0.82, 88)
-            if model.launcher.isEmpty {
-                WidgetUnavailable(symbol: "dock.rectangle", message: "Your Mac's Dock appears here.")
-            } else {
-                HStack(spacing: side * 0.32) {
-                    ForEach(Array(model.launcher.enumerated()), id: \.element.id) { index, item in
-                        AppButton(item: item, icon: model.icons[item.id], side: side) { model.launch(item) }
-                        // Finder stands apart, as it does in the Mac's own Dock.
-                        if index == 0, model.launcher.count > 1 {
-                            Capsule().fill(.inkTertiary).frame(width: 1.5, height: side * 0.5)
-                        }
+        if !model.launcher.isEmpty {
+            HStack(spacing: 18) {
+                ForEach(Array(model.launcher.enumerated()), id: \.element.id) { index, item in
+                    AppButton(item: item, icon: model.icons[item.id], side: Self.iconSide) { model.launch(item) }
+                    // Finder stands apart, as it does in the Mac's own Dock.
+                    if index == 0, model.launcher.count > 1 {
+                        Capsule().fill(.inkTertiary).frame(width: 1, height: Self.iconSide * 0.55)
                     }
                 }
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
-                .padding(.horizontal, side * 0.3)
             }
+            .padding(14)
+            .glassEffect(.regular, in: .rect(cornerRadius: 30, style: .continuous))
+            .disabled(store.isEditing)
+            .opacity(store.isEditing ? 0.6 : 1)
+            .transition(.move(edge: .bottom).combined(with: .opacity))
         }
     }
 }
@@ -50,13 +52,13 @@ private struct AppButton: View {
                 }
             }
             .frame(width: side, height: side)
-            .shadow(color: .black.opacity(0.3), radius: 10, y: 5)
+            .shadow(color: .black.opacity(0.25), radius: 8, y: 4)
             .keyframeAnimator(initialValue: 0.0, trigger: launches) { content, lift in
                 content.offset(y: -lift)
             } keyframes: { _ in
                 // The Dock's launch bounce, once.
-                SpringKeyframe(side * 0.28, duration: 0.18)
-                SpringKeyframe(0, duration: 0.32)
+                SpringKeyframe(side * 0.3, duration: 0.18)
+                SpringKeyframe(0, duration: 0.34)
             }
         }
         .buttonStyle(PressScaleStyle())

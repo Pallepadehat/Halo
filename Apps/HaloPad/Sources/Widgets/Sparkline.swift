@@ -32,7 +32,7 @@ struct Sparkline: View {
             ForEach(samples, id: \.timestamp) { sample in
                 AreaMark(x: .value("Time", sample.timestamp), y: .value("Value", sample[keyPath: value]))
                     .foregroundStyle(.linearGradient(
-                        colors: [Color.white.opacity(0.18), Color.white.opacity(0)],
+                        colors: [Color.white.opacity(0.1), Color.white.opacity(0)],
                         startPoint: .top,
                         endPoint: .bottom
                     ))
@@ -106,19 +106,16 @@ struct Meter: View {
     var isAlarming = false
 
     var body: some View {
-        VStack {
-            Spacer()
-            GeometryReader { geometry in
-                ZStack(alignment: .leading) {
-                    Capsule()
-                        .fill(Color.white.opacity(0.14))
-                    Capsule()
-                        .fill(isAlarming ? Color.attention : Color.white.opacity(0.85))
-                        .frame(width: geometry.size.width * min(max(fraction, 0), 1))
-                }
+        GeometryReader { geometry in
+            ZStack(alignment: .leading) {
+                Capsule()
+                    .fill(Color.white.opacity(0.14))
+                Capsule()
+                    .fill(isAlarming ? Color.attention : Color.white.opacity(0.85))
+                    .frame(width: geometry.size.width * min(max(fraction, 0), 1))
             }
-            .frame(height: 6)
         }
+        .frame(height: 6)
         .accessibilityElement()
         .accessibilityLabel("Used")
         .accessibilityValue(fraction.formatted(.percent.precision(.fractionLength(0))))

@@ -1,7 +1,7 @@
 import HaloDashboard
 import SwiftUI
 
-/// The whole iPad: backdrop, status bar, the person's pages, and the page indicator.
+/// The whole iPad: backdrop, status bar, the person's pages, the page indicator and the Dock.
 struct DashboardView: View {
     @Environment(DashboardStore.self) private var store
     @Environment(Ambience.self) private var ambience
@@ -29,6 +29,9 @@ struct DashboardView: View {
 
                 PageIndicator()
                     .frame(height: 36)
+
+                DockBar()
+                    .padding(.bottom, 20)
             }
             .offset(ambience.pixelShift)
             .animation(.easeInOut(duration: 8), value: ambience.pixelShift)

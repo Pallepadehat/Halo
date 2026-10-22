@@ -10,7 +10,6 @@ public enum WidgetKind: String, Codable, Sendable, CaseIterable, Identifiable {
     case network
     case agents
     case trackpad
-    case dock
     case deck
 
     public var id: String { rawValue }
@@ -27,7 +26,6 @@ public enum WidgetKind: String, Codable, Sendable, CaseIterable, Identifiable {
         case .network: "Network"
         case .agents: "Agents"
         case .trackpad: "Trackpad"
-        case .dock: "Dock"
         case .deck: "Deck"
         }
     }
@@ -44,7 +42,6 @@ public enum WidgetKind: String, Codable, Sendable, CaseIterable, Identifiable {
         case .network: "Download and upload, right now."
         case .agents: "Claude Code, Codex and Cursor. Approve without switching."
         case .trackpad: "A large trackpad for your Mac."
-        case .dock: "The apps in your Mac's Dock."
         case .deck: "Your Shortcuts and everyday actions, one tap each."
         }
     }
@@ -62,7 +59,6 @@ public enum WidgetKind: String, Codable, Sendable, CaseIterable, Identifiable {
         case .network: "network"
         case .agents: "sparkles"
         case .trackpad: "hand.point.up.left"
-        case .dock: "dock.rectangle"
         case .deck: "square.grid.3x2"
         }
     }
@@ -75,7 +71,6 @@ public enum WidgetKind: String, Codable, Sendable, CaseIterable, Identifiable {
         case .cpu, .memory, .storage, .network: GridSize(width: 3, height: 2)
         case .agents: GridSize(width: 4, height: 3)
         case .trackpad: GridSize(width: 3, height: 3)
-        case .dock: GridSize(width: 4, height: 1)
         case .deck: GridSize(width: 3, height: 2)
         }
     }
@@ -88,7 +83,6 @@ public enum WidgetKind: String, Codable, Sendable, CaseIterable, Identifiable {
         case .cpu, .memory, .storage, .network: GridSize(width: 5, height: 2)
         case .agents: GridSize(width: 7, height: 6)
         case .trackpad: GridSize(width: 4, height: 4)
-        case .dock: GridSize(width: 10, height: 1)
         case .deck: GridSize(width: 4, height: 3)
         }
     }
@@ -96,7 +90,7 @@ public enum WidgetKind: String, Codable, Sendable, CaseIterable, Identifiable {
     public var maximumSize: GridSize {
         switch self {
         case .brightness, .volume: GridSize(width: 2, height: Grid.rows)
-        case .nowPlaying, .dock: GridSize(width: Grid.columns, height: 2)
+        case .nowPlaying: GridSize(width: Grid.columns, height: 2)
         default: GridSize(width: Grid.columns, height: Grid.rows)
         }
     }

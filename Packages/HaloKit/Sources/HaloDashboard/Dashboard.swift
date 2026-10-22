@@ -12,7 +12,7 @@ public struct DashboardWidget: Codable, Sendable, Hashable, Identifiable {
     }
 }
 
-public struct DashboardPage: Codable, Sendable, Hashable, Identifiable {
+public struct DashboardPage: Sendable, Hashable, Identifiable {
     public let id: UUID
     public var title: String
     public private(set) var widgets: [DashboardWidget]
@@ -78,6 +78,37 @@ public struct DashboardPage: Codable, Sendable, Hashable, Identifiable {
         guard frame != widgets[index].frame, isAvailable(frame, ignoring: id) else { return false }
         widgets[index].frame = frame
         return true
+    }
+}
+
+extension DashboardPage: Codable {
+    private enum CodingKeys: String, CodingKey {
+        case id, title, widgets
+    }
+
+    /// Skips widgets whose kind this build doesn't know, so a layout saved by a newer or older
+    /// version still opens rather than resetting to the standard one.
+    public init(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(UUID.self, forKey: .id)
+        title = try container.decode(String.self, forKey: .title)
+        widgets = try container.decode([Lossy<DashboardWidget>].self, forKey: .widgets).compactMap(\.value)
+    }
+
+    public func encode(to encoder: any Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(id, forKey: .id)
+        try container.encode(title, forKey: .title)
+        try container.encode(widgets, forKey: .widgets)
+    }
+}
+
+/// Decodes to `nil` instead of failing the whole array.
+private struct Lossy<Value: Decodable>: Decodable {
+    let value: Value?
+
+    init(from decoder: any Decoder) throws {
+        value = try? Value(from: decoder)
     }
 }
 

@@ -103,12 +103,12 @@ private struct StatLayout<Value: View, Accessory: View, Footer: View>: View {
                     accessory
                 }
                 footer
+                Spacer(minLength: 0)
+                // A calm band, not a chart: it sits under the number, it doesn't compete with it.
                 if let trend, geometry.size.height > 260 {
                     Sparkline(samples: samples, domain: isShare ? 0...1 : nil, value: trend, format: isShare ? .percentage : .transferRate)
-                        .frame(maxHeight: .infinity)
+                        .frame(height: min(geometry.size.height * 0.32, 140))
                         .transition(.opacity)
-                } else {
-                    Spacer(minLength: 0)
                 }
             }
             .padding(.horizontal, 8)

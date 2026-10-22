@@ -18,7 +18,6 @@ struct WidgetView: View {
         case .network: NetworkWidget()
         case .agents: AgentsWidget()
         case .trackpad: TrackpadWidget()
-        case .dock: DockWidget()
         case .deck: DeckWidget()
         }
     }

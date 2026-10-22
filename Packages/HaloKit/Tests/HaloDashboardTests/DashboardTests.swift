@@ -86,6 +86,17 @@ import Testing
         #expect(Dashboard.standard.firstPage(containing: .agents)?.title == "Agents")
     }
 
+    @Test func skipsWidgetKindsThisBuildDoesNotKnow() throws {
+        let json = """
+        {"id":"7C9D5B7E-2F4B-4F5E-9C1A-1E2D3C4B5A69","title":"Old","widgets":[
+          {"id":"1C9D5B7E-2F4B-4F5E-9C1A-1E2D3C4B5A69","kind":"dock","frame":{"x":0,"y":7,"width":10,"height":1}},
+          {"id":"2C9D5B7E-2F4B-4F5E-9C1A-1E2D3C4B5A69","kind":"clock","frame":{"x":2,"y":1,"width":8,"height":3}}
+        ]}
+        """
+        let page = try JSONDecoder().decode(DashboardPage.self, from: Data(json.utf8))
+        #expect(page.widgets.map(\.kind) == [.clock])
+    }
+
     @Test func survivesARoundTripThroughJSON() throws {
         let dashboard = Dashboard.standard
         let data = try JSONEncoder().encode(dashboard)
