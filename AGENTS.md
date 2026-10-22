@@ -4,7 +4,9 @@ Guidance for AI coding agents (and humans) working in this repo. Read `docs/PRD.
 
 ## What Halo is
 
-Halo turns the iPad next to a Mac into a calm, always-on companion surface with six modes — **Zen, Trackpad, Pulse, Agents, Launch, Deck** — and a persistent status strip. Halo brings the right mode forward on its own (e.g. an agent needs approval → Agents), always overridable by the user.
+Halo turns the iPad next to a Mac into a calm, always-on companion surface. The person arranges **pages of widgets** (clock, now playing, brightness, volume, processor, memory, storage, network, agents, trackpad, deck) beneath a status bar, with the Mac's Dock pinned at the bottom. The backdrop is the Mac's own wallpaper, or the album artwork while music plays, blurred. When an agent starts needing the person, Halo brings forward the first page with the Agents widget.
+
+This deliberately departs from the PRD's fixed six modes: the modes became widgets the person places where they like.
 
 Two apps:
 
@@ -38,6 +40,8 @@ Halo/
 │       ├── Sources/HaloMetrics/     macOS-only CPU, memory, storage, network and per-app sampling
 │       ├── Sources/HaloTrackpad/    pure gesture interpreter: touches in, PointerEvents out
 │       ├── Sources/HaloInput/       macOS-only: plays PointerEvents as CGEvents (needs Accessibility)
+│       ├── Sources/HaloDashboard/   pure model for pages of widgets on a 12×8 grid, with layout ops
+│       ├── Sources/HaloDesktop/     macOS-only: wallpaper, Dock apps, Music/Spotify, volume, brightness, Deck, calendar
 │       └── Tests/
 └── docs/
     ├── PRD.md
@@ -83,6 +87,34 @@ Agent tools call `halo-hook <tool>` from their hook config. It relays stdin over
 - The Mac sends a `snapshot()` to every new connection so iPads start in sync. The iPad keeps no state the Mac doesn't own.
 - `ModeSuggester` is edge-triggered: it reacts when an agent *starts* needing you.
 
+## Design language (iPad)
+
+The look is Apple-native and quiet. Match it in new work:
+
+- **Backdrop:** `Backdrop` blurs the wallpaper or artwork once, off the main actor, at 320 px, then only transforms the result. Never live-blur per frame.
+- **Type:** white ink at `ink` / `inkSecondary` / `inkTertiary` (see `Theme.swift`). Hero numbers use `Font.hero` (SF Thin, monospaced digits). Small labels use `eyebrowStyle()`.
+- **Glass:** Liquid Glass (`glassEffect`, `.buttonStyle(.glass)`) for anything you touch: sliders, buttons, the trackpad, the Dock. Information sits directly on the backdrop.
+- **Colour:** `attention` (amber) means "needs you" and `progress` (green) means "working". Always pair them with an icon or words.
+- **Motion:** slow and eased (`Animation.halo`). The Home Screen wiggle in edit mode is the one exception.
+- **Adaptive widgets:** every widget reads its own size and adds detail as it grows (a trend, progress, a stacked layout). Check new widgets at their minimum and maximum size.
+- iPadOS 26 ignores orientation locks for resizable apps, so pages must work in portrait too.
+
+## Widgets and pages
+
+- **Adding a widget:** add a `WidgetKind` case (title, summary, symbol, size limits) in `HaloDashboard`, then a view in `Apps/HaloPad/Sources/Widgets`, routed in `WidgetView`.
+- **Removing a kind is safe:** `DashboardPage` decodes leniently and skips unknown kinds.
+- **Layout rules** live in `DashboardPage` (add, move, resize, collisions) and are unit-tested. Views only translate gestures through `GridGeometry`.
+- **Touch ownership:** a widget that owns its touches (the trackpad) sets `DashboardStore.isWidgetCapturingTouches`, so the pager stops paging.
+
+## Desktop features (Mac)
+
+`DesktopFeed` polls media and controls once a second, only while an iPad is connected. Wallpaper, Dock, Deck and calendar refresh every 20 s. It sends only meaningful changes, and every new iPad gets a full snapshot.
+
+- **Music and Spotify** use AppleScript (Automation consent per app; `com.apple.security.automation.apple-events`). Scripts check `is running` first, so polling never launches a player.
+- **Brightness** uses private DisplayServices via `dlsym`. It only works on built-in and Apple displays; other monitors report "unavailable".
+- **Deck:** built-ins, every Shortcut (`shortcuts list` / `run`), and executables in `~/Library/Application Support/Halo/Scripts`. macOS has no API for Do Not Disturb; a Shortcut using "Set Focus" covers it.
+- **Calendar** uses EventKit (`com.apple.security.personal-information.calendars`).
+
 ## Pulse
 
 - The helper samples every 2 s (`MetricsMonitor`) and keeps a 10-minute `MetricsHistory`, which seeds each iPad on connect.
@@ -91,10 +123,10 @@ Agent tools call `halo-hook <tool>` from their hook config. It relays stdin over
 
 ## Previewing on the iPad
 
-DEBUG builds accept `-HaloDemo [mode]` (e.g. `-HaloDemo pulse`), which fills every mode with `DemoData` and needs no Mac. Use it for screenshots and design passes:
+DEBUG builds accept `-HaloDemo [page index]`, which fills every widget with rendered `DemoData` (a wallpaper, artwork, icons, agents and more) and needs no Mac. Add `-HaloDemoEditing` to open in edit mode, and `-HaloLandscape` to request landscape. Use it for screenshots and design passes:
 
 ```sh
-xcrun simctl launch booted dk.patrickjak.halo.pad -HaloDemo agents
+xcrun simctl launch booted dk.patrickjak.halo.pad -HaloDemo 2 -HaloDemoEditing
 ```
 
 ## Trackpad and the latency budget
