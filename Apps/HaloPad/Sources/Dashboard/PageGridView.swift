@@ -23,6 +23,12 @@ struct PageGridView: View {
                     .onAppear { store.pageSize = proxy.size }
                     .onChange(of: proxy.size) { store.pageSize = proxy.size }
 
+                if store.isEditing, page.widgets.isEmpty {
+                    EmptyPageHint()
+                        .frame(width: proxy.size.width, height: proxy.size.height)
+                        .transition(.opacity)
+                }
+
                 if store.isEditing, let preview {
                     let isValid = page.isAvailable(preview.frame, ignoring: preview.id)
                     let rect = geometry.rect(for: preview.frame)
@@ -47,6 +53,32 @@ struct PageGridView: View {
             .animation(.spring(duration: 0.4, bounce: 0.15), value: page.widgets)
             }
         }
+    }
+}
+
+/// An empty page while editing: one quiet invitation, in place of the widgets to come.
+private struct EmptyPageHint: View {
+    @Environment(DashboardStore.self) private var store
+
+    var body: some View {
+        Button { store.isShowingGallery = true } label: {
+            VStack(spacing: 14) {
+                Image(systemName: "plus")
+                    .font(.system(size: 26, weight: .medium))
+                    .frame(width: 64, height: 64)
+                    .glassEffect(.regular.interactive(), in: .circle)
+                Text("Add Widgets")
+                    .font(.title3.weight(.medium))
+                    .foregroundStyle(.ink)
+                Text("Choose from the gallery, then drag them where you like.")
+                    .font(.subheadline)
+                    .foregroundStyle(.inkSecondary)
+            }
+            .foregroundStyle(.ink)
+            .multilineTextAlignment(.center)
+            .contentShape(.rect)
+        }
+        .buttonStyle(.plain)
     }
 }
 

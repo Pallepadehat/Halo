@@ -3,6 +3,8 @@ import SwiftUI
 
 /// The whole iPad: backdrop, status bar, the person's pages, the page indicator and the Dock.
 struct DashboardView: View {
+    static let barHeight: CGFloat = 52
+
     @Environment(DashboardStore.self) private var store
     @Environment(Ambience.self) private var ambience
 
@@ -20,7 +22,9 @@ struct DashboardView: View {
                             StatusBar().transition(.opacity)
                         }
                     }
-                    .frame(height: 56)
+                    .frame(height: DashboardView.barHeight)
+                    // Room above the bar, so its controls never crowd the iPad's edge.
+                    .padding(.top, 16)
 
                     if store.isEmpty, !store.isEditing {
                         HelloView()

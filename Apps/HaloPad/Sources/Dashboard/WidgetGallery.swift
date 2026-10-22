@@ -86,14 +86,14 @@ private struct WidgetSizePicker: View {
             .tabViewStyle(.page(indexDisplayMode: .never))
 
             if kind.families.count > 1 {
-                HStack(spacing: 8) {
+                Picker("Size", selection: Binding { selected } set: { option in withAnimation(.smooth) { family = option } }) {
                     ForEach(kind.families) { option in
-                        Button(option.title) { withAnimation(.smooth) { family = option } }
-                            .buttonStyle(.glass)
-                            .tint(option == selected ? .white : .clear)
-                            .fontWeight(option == selected ? .semibold : .regular)
+                        Text(option.title).tag(option)
                     }
                 }
+                .pickerStyle(.segmented)
+                .controlSize(.large)
+                .frame(maxWidth: 120 * CGFloat(kind.families.count))
             }
 
             Button {
