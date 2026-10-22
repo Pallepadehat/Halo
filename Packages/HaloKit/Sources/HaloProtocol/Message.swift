@@ -2,8 +2,6 @@ import Foundation
 import HaloCore
 
 public let haloProtocolVersion = 1
-/// Bonjour service type advertised by the Mac helper.
-public let haloBonjourServiceType = "_halo._tcp"
 
 /// Mac helper → iPad.
 public enum MacMessage: Codable, Sendable, Equatable {
