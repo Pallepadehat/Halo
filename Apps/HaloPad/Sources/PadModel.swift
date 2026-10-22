@@ -9,6 +9,8 @@ final class PadModel {
     var mode: Mode = .zen
     private(set) var pulse = MetricsHistory()
     private(set) var agents: [AgentSession] = []
+    /// Whether the Mac may move its pointer (Accessibility consent on the Mac).
+    private(set) var isTrackpadAvailable = false
 
     var metrics: SystemMetrics {
         pulse.latest ?? .empty
@@ -23,11 +25,16 @@ final class PadModel {
         link.onDisconnect = { [weak self] in
             self?.agents = []
             self?.pulse = MetricsHistory()
+            self?.isTrackpadAvailable = false
         }
     }
 
     func start() {
         link.start()
+    }
+
+    func send(_ events: [PointerEvent]) {
+        for event in events { link.send(.pointer(event)) }
     }
 
     func resolve(_ request: ApprovalRequest, with decision: ApprovalDecision) {
@@ -36,8 +43,10 @@ final class PadModel {
 
     private func apply(_ message: MacMessage) {
         switch message {
-        case .hello:
+        case .hello, .pong:
             break
+        case .trackpadAvailability(let isAvailable):
+            isTrackpadAvailable = isAvailable
         case .metrics(let sample):
             pulse.append(sample)
         case .metricsHistory(let samples):
@@ -58,6 +67,7 @@ extension PadModel {
         let model = PadModel(link: .demo())
         model.apply(.metricsHistory(DemoData.metricsHistory()))
         model.apply(.agents(DemoData.agents()))
+        model.apply(.trackpadAvailability(isAvailable: true))
         model.mode = mode
         return model
     }

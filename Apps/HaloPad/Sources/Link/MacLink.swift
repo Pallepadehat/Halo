@@ -1,4 +1,5 @@
 import Foundation
+import HaloCore
 import HaloProtocol
 import HaloTransport
 import Network
@@ -34,6 +35,8 @@ final class MacLink {
     private(set) var pairing: PairingState = .idle
     /// Local Network access is off, so the paired Mac can't be found.
     private(set) var isLocalNetworkDenied = false
+    /// Estimated one-way latency to the Mac, for the PRD's 20 ms p95 budget.
+    var latency: LatencyStats { probe.stats }
 
     @ObservationIgnored var onMessage: (MacMessage) -> Void = { _ in }
     @ObservationIgnored var onDisconnect: () -> Void = {}
@@ -43,6 +46,7 @@ final class MacLink {
     @ObservationIgnored private var connectionTask: Task<Void, Never>?
     @ObservationIgnored private var pairingTask: Task<Void, Never>?
     @ObservationIgnored private var pendingAnswer: CheckedContinuation<Bool, Never>?
+    private var probe = LatencyProbe()
     private static let log = Logger(subsystem: "app.halo", category: "MacLink")
 
     init(identity: DeviceIdentity, store: any PairedDeviceStore = KeychainPairedDeviceStore()) {
@@ -122,13 +126,25 @@ final class MacLink {
 
             self.outbox = outbox
             status = .connected(mac.identity)
+            probe = LatencyProbe()
+            let pinging = Task {
+                while !Task.isCancelled {
+                    outbox.send(.ping(id: probe.makePing(at: .now)))
+                    try? await Task.sleep(for: LatencyProbe.interval)
+                }
+            }
             defer {
+                pinging.cancel()
                 self.outbox = nil
                 onDisconnect()
             }
 
             for try await message in channel.messages(of: MacMessage.self) {
-                onMessage(message)
+                if case .pong(let id) = message {
+                    probe.receivePong(id, at: .now)
+                } else {
+                    onMessage(message)
+                }
             }
         } catch {
             Self.log.debug("Mac session ended: \(error, privacy: .public)")

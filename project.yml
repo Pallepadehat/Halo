@@ -34,6 +34,8 @@ targets:
         product: HaloProtocol
       - package: HaloKit
         product: HaloTransport
+      - package: HaloKit
+        product: HaloTrackpad
     info:
       path: Apps/HaloPad/Resources/Info.plist
       properties:
@@ -129,6 +131,7 @@ schemes:
       targets:
         - package: HaloKit/HaloCoreTests
         - package: HaloKit/HaloProtocolTests
+        - package: HaloKit/HaloTrackpadTests
   HaloMac:
     build:
       targets:

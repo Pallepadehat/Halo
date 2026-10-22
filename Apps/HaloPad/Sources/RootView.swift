@@ -31,6 +31,7 @@ struct ModeView: View {
     var body: some View {
         switch mode {
         case .zen: ZenView()
+        case .trackpad: TrackpadView()
         case .pulse: PulseView()
         case .agents: AgentsView()
         default: PlaceholderModeView(mode: mode)
