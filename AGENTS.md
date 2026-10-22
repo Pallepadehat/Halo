@@ -36,6 +36,8 @@ Halo/
 │       ├── Sources/HaloAgents/      tool adapters, AgentSessionStore, AgentCoordinator, HookInstaller
 │       ├── Sources/HaloTransport/   pairing, encrypted channels, Bonjour discovery, Keychain pairings
 │       ├── Sources/HaloMetrics/     macOS-only CPU, memory, storage, network and per-app sampling
+│       ├── Sources/HaloTrackpad/    pure gesture interpreter: touches in, PointerEvents out
+│       ├── Sources/HaloInput/       macOS-only: plays PointerEvents as CGEvents (needs Accessibility)
 │       └── Tests/
 └── docs/
     ├── PRD.md
@@ -95,9 +97,20 @@ DEBUG builds accept `-HaloDemo [mode]` (e.g. `-HaloDemo pulse`), which fills eve
 xcrun simctl launch booted dk.patrickjak.halo.pad -HaloDemo agents
 ```
 
+## Trackpad and the latency budget
+
+The PRD budget is **< 20 ms p95, iPad touch to Mac pointer**. Treat every change on this path as performance work.
+
+- **iPad:** `TouchSurfaceView` reads raw touches (no gesture recognizers, since they wait before deciding) → `TrackpadInterpreter` → `PadMessage.pointer`. The interpreter is pure and takes timestamps from its caller. Add a test for any new gesture.
+- **Mac:** `PadLink.receive` is `@concurrent`, so pointer events reach `InputInjector` and pings are answered without touching the main actor. Never route pointer events through `onMessage`.
+- **Measuring:** `LatencyProbe` pings once a second on the same connection. Debug builds show the estimated one-way p50/p95 in Trackpad mode, amber when over budget. Check it before and after changes.
+- **Wire format:** pointer events stay JSON (~8 µs, 67 bytes). `PointerEncodingTests` guards this. Go binary only if that test says so.
+- **Mac limitations:** there's no public API to synthesise magnify gestures, so pinch maps to ⌘= / ⌘−, and three-finger swipes map to the ⌃-arrow shortcuts for spaces, Mission Control and App Exposé. Posting events needs Accessibility (`InputAccess`).
+
 ## Troubleshooting
 
 - **The iPad can't find the Mac / `Listener failed: -65555: NoAuth`.** Bonjour was refused by Local Network privacy. Every target must be signed by a real team (`DEVELOPMENT_TEAM` in `project.yml`): macOS ties the permission to the code signature, and ad-hoc builds are refused. Then allow *Halo Helper* under System Settings › Privacy & Security › Local Network, and *Halo* under the same pane on the iPad. Both apps detect this (`Error.isLocalNetworkDenied`) and link to Settings.
+- **The pointer doesn't move.** Allow *Halo Helper* under System Settings › Privacy & Security › Accessibility. A rebuilt app with a new signature may need to be re-added.
 - Both devices must be on the same network, or close enough for peer-to-peer Wi-Fi.
 
 ## Tech conventions
