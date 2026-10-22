@@ -1,6 +1,6 @@
 import Foundation
 
-public struct Widget: Codable, Sendable, Hashable, Identifiable {
+public struct DashboardWidget: Codable, Sendable, Hashable, Identifiable {
     public let id: UUID
     public let kind: WidgetKind
     public var frame: GridFrame
@@ -15,15 +15,15 @@ public struct Widget: Codable, Sendable, Hashable, Identifiable {
 public struct DashboardPage: Codable, Sendable, Hashable, Identifiable {
     public let id: UUID
     public var title: String
-    public private(set) var widgets: [Widget]
+    public private(set) var widgets: [DashboardWidget]
 
-    public init(id: UUID = UUID(), title: String, widgets: [Widget] = []) {
+    public init(id: UUID = UUID(), title: String, widgets: [DashboardWidget] = []) {
         self.id = id
         self.title = title
         self.widgets = widgets
     }
 
-    public func widget(_ id: Widget.ID) -> Widget? {
+    public func widget(_ id: DashboardWidget.ID) -> DashboardWidget? {
         widgets.first { $0.id == id }
     }
 
@@ -32,7 +32,7 @@ public struct DashboardPage: Codable, Sendable, Hashable, Identifiable {
     }
 
     /// Whether `frame` is on the grid and clear of every other widget.
-    public func isAvailable(_ frame: GridFrame, ignoring id: Widget.ID? = nil) -> Bool {
+    public func isAvailable(_ frame: GridFrame, ignoring id: DashboardWidget.ID? = nil) -> Bool {
         frame.fitsGrid && !widgets.contains { $0.id != id && $0.frame.intersects(frame) }
     }
 
@@ -49,30 +49,30 @@ public struct DashboardPage: Codable, Sendable, Hashable, Identifiable {
 
     /// Adds at the default size, or the smallest that fits. `nil` when the page is full.
     @discardableResult
-    public mutating func add(_ kind: WidgetKind) -> Widget? {
+    public mutating func add(_ kind: WidgetKind) -> DashboardWidget? {
         let candidates = [kind.defaultSize, kind.minimumSize]
         guard let frame = candidates.lazy.compactMap(firstAvailableFrame).first else { return nil }
-        let widget = Widget(kind: kind, frame: frame)
+        let widget = DashboardWidget(kind: kind, frame: frame)
         widgets.append(widget)
         return widget
     }
 
     @discardableResult
-    public mutating func move(_ id: Widget.ID, to origin: GridPoint) -> Bool {
+    public mutating func move(_ id: DashboardWidget.ID, to origin: GridPoint) -> Bool {
         update(id) { GridFrame(origin: origin, size: $0.frame.size) }
     }
 
     /// Resizes within the kind's limits; the top-left corner stays put.
     @discardableResult
-    public mutating func resize(_ id: Widget.ID, to size: GridSize) -> Bool {
+    public mutating func resize(_ id: DashboardWidget.ID, to size: GridSize) -> Bool {
         update(id) { GridFrame(origin: $0.frame.origin, size: size.clamped(to: $0.kind.sizeRange)) }
     }
 
-    public mutating func remove(_ id: Widget.ID) {
+    public mutating func remove(_ id: DashboardWidget.ID) {
         widgets.removeAll { $0.id == id }
     }
 
-    private mutating func update(_ id: Widget.ID, frame makeFrame: (Widget) -> GridFrame) -> Bool {
+    private mutating func update(_ id: DashboardWidget.ID, frame makeFrame: (DashboardWidget) -> GridFrame) -> Bool {
         guard let index = widgets.firstIndex(where: { $0.id == id }) else { return false }
         let frame = makeFrame(widgets[index])
         guard frame != widgets[index].frame, isAvailable(frame, ignoring: id) else { return false }

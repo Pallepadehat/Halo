@@ -6,14 +6,21 @@ struct PairingView: View {
     @Environment(MacLink.self) private var link
 
     var body: some View {
+        ZStack {
+            Backdrop()
+            pairing
+        }
+    }
+
+    private var pairing: some View {
         VStack(spacing: 40) {
             VStack(spacing: 12) {
                 Image(systemName: "circle.circle")
                     .font(.system(size: 56, weight: .thin))
-                    .foregroundStyle(.haloInk)
+                    .foregroundStyle(.ink)
                 Text("Pair with your Mac")
-                    .font(.largeTitle.weight(.light))
-                    .foregroundStyle(.haloInk)
+                    .font(.system(size: 44, weight: .thin))
+                    .foregroundStyle(.ink)
             }
 
             content
@@ -50,7 +57,7 @@ private struct SearchingForMacs: View {
             ProgressView()
             Text("On your Mac, open Halo from the menu bar and choose **Pair iPad**.")
                 .multilineTextAlignment(.center)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(.inkSecondary)
         }
     }
 }
@@ -69,7 +76,7 @@ private struct MacList: View {
                         .font(.title3)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(20)
-                        .background(.haloSurface, in: .rect(cornerRadius: 18))
+                        .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 18, style: .continuous))
                 }
                 .buttonStyle(.plain)
             }
@@ -85,16 +92,16 @@ private struct ConfirmCode: View {
         VStack(spacing: 28) {
             Text("Make sure \(proposal.peer.name) shows the same code.")
                 .multilineTextAlignment(.center)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(.inkSecondary)
             Text(proposal.displayCode)
-                .font(.system(size: 88, weight: .thin, design: .rounded).monospacedDigit())
-                .foregroundStyle(.haloInk)
+                .font(.hero(96))
+                .foregroundStyle(.ink)
                 .accessibilityLabel(proposal.verificationCode.map(String.init).joined(separator: " "))
             HStack(spacing: 16) {
                 Button("Cancel") { link.cancelPairing() }
-                    .buttonStyle(.bordered)
+                    .buttonStyle(.glass)
                 Button("Pair") { link.answerPairing(accepted: true) }
-                    .buttonStyle(.borderedProminent)
+                    .buttonStyle(.glassProminent)
             }
             .controlSize(.extraLarge)
         }
@@ -108,11 +115,11 @@ private struct LocalNetworkDenied: View {
         VStack(spacing: 20) {
             Text("Halo needs Local Network access to find your Mac.")
                 .multilineTextAlignment(.center)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(.inkSecondary)
             Button("Open Settings") {
                 openURL(URL(string: UIApplication.openSettingsURLString)!)
             }
-            .buttonStyle(.borderedProminent)
+            .buttonStyle(.glassProminent)
             .controlSize(.large)
         }
     }
@@ -126,12 +133,12 @@ private struct PairingFailed: View {
         VStack(spacing: 20) {
             Text(message)
                 .multilineTextAlignment(.center)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(.inkSecondary)
             Button("Try Again") {
                 link.cancelPairing()
                 link.beginPairing()
             }
-            .buttonStyle(.borderedProminent)
+            .buttonStyle(.glassProminent)
             .controlSize(.large)
         }
     }

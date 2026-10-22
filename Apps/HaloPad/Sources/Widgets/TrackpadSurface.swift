@@ -6,6 +6,8 @@ import UIKit
 /// SwiftUI wrapper around the raw-touch surface.
 struct TrackpadSurface: UIViewRepresentable {
     let onEvents: ([PointerEvent]) -> Void
+    /// Lets the page stop paging while a finger is on the trackpad.
+    var onTouchingChanged: (Bool) -> Void = { _ in }
 
     func makeUIView(context: Context) -> TouchSurfaceView {
         TouchSurfaceView()
@@ -13,6 +15,7 @@ struct TrackpadSurface: UIViewRepresentable {
 
     func updateUIView(_ view: TouchSurfaceView, context: Context) {
         view.onEvents = onEvents
+        view.onTouchingChanged = onTouchingChanged
     }
 }
 
@@ -21,6 +24,7 @@ struct TrackpadSurface: UIViewRepresentable {
 /// interpreter immediately, using UIKit's own event timestamps.
 final class TouchSurfaceView: UIView {
     var onEvents: ([PointerEvent]) -> Void = { _ in }
+    var onTouchingChanged: (Bool) -> Void = { _ in }
 
     private var interpreter = TrackpadInterpreter()
     private var activeTouches: Set<UITouch> = []
@@ -41,6 +45,7 @@ final class TouchSurfaceView: UIView {
     }
 
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
+        if activeTouches.isEmpty { onTouchingChanged(true) }
         activeTouches.formUnion(touches)
         process(event)
     }
@@ -52,11 +57,13 @@ final class TouchSurfaceView: UIView {
     override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {
         activeTouches.subtract(touches)
         process(event)
+        if activeTouches.isEmpty { onTouchingChanged(false) }
     }
 
     override func touchesCancelled(_ touches: Set<UITouch>, with event: UIEvent?) {
         activeTouches.subtract(touches)
         process(event)
+        if activeTouches.isEmpty { onTouchingChanged(false) }
     }
 
     private func process(_ event: UIEvent?) {
@@ -115,7 +122,7 @@ final class TouchSurfaceView: UIView {
         let layer = CALayer()
         layer.bounds = CGRect(x: 0, y: 0, width: 72, height: 72)
         layer.cornerRadius = 36
-        layer.backgroundColor = UIColor(Color.haloInk).withAlphaComponent(0.08).cgColor
+        layer.backgroundColor = UIColor.white.withAlphaComponent(0.1).cgColor
         self.layer.addSublayer(layer)
         return layer
     }

@@ -32,26 +32,26 @@ struct Sparkline: View {
             ForEach(samples, id: \.timestamp) { sample in
                 AreaMark(x: .value("Time", sample.timestamp), y: .value("Value", sample[keyPath: value]))
                     .foregroundStyle(.linearGradient(
-                        colors: [Color.haloInk.opacity(0.16), Color.haloInk.opacity(0)],
+                        colors: [Color.white.opacity(0.18), Color.white.opacity(0)],
                         startPoint: .top,
                         endPoint: .bottom
                     ))
                     .interpolationMethod(.monotone)
                 LineMark(x: .value("Time", sample.timestamp), y: .value("Value", sample[keyPath: value]))
-                    .foregroundStyle(Color.haloInk.opacity(0.5))
+                    .foregroundStyle(Color.white.opacity(0.55))
                     .lineStyle(StrokeStyle(lineWidth: 2, lineCap: .round, lineJoin: .round))
                     .interpolationMethod(.monotone)
             }
 
             if let current = selected ?? samples.last {
                 PointMark(x: .value("Time", current.timestamp), y: .value("Value", current[keyPath: value]))
-                    .foregroundStyle(Color.haloInk)
+                    .foregroundStyle(Color.ink)
                     .symbolSize(70)
             }
 
             if let selected {
                 RuleMark(x: .value("Time", selected.timestamp))
-                    .foregroundStyle(Color.haloInk.opacity(0.25))
+                    .foregroundStyle(Color.white.opacity(0.3))
                     .annotation(position: .top, overflowResolution: .init(x: .fit(to: .chart), y: .disabled)) {
                         ScrubLabel(value: format.string(for: selected[keyPath: value]), date: selected.timestamp)
                     }
@@ -89,14 +89,14 @@ private struct ScrubLabel: View {
         VStack(spacing: 2) {
             Text(value)
                 .font(.callout.weight(.semibold).monospacedDigit())
-                .foregroundStyle(.haloInk)
+                .foregroundStyle(.ink)
             Text(date, format: .dateTime.hour().minute().second())
                 .font(.caption2.monospacedDigit())
                 .foregroundStyle(.secondary)
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 6)
-        .background(.black.opacity(0.8), in: .rect(cornerRadius: 10))
+        .glassEffect(.regular, in: .rect(cornerRadius: 10))
     }
 }
 
@@ -111,13 +111,13 @@ struct Meter: View {
             GeometryReader { geometry in
                 ZStack(alignment: .leading) {
                     Capsule()
-                        .fill(Color.haloInk.opacity(0.12))
+                        .fill(Color.white.opacity(0.14))
                     Capsule()
-                        .fill(isAlarming ? Color.haloAttention : Color.haloInk.opacity(0.6))
+                        .fill(isAlarming ? Color.attention : Color.white.opacity(0.85))
                         .frame(width: geometry.size.width * min(max(fraction, 0), 1))
                 }
             }
-            .frame(height: 10)
+            .frame(height: 6)
         }
         .accessibilityElement()
         .accessibilityLabel("Used")

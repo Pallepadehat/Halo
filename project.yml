@@ -36,11 +36,14 @@ targets:
         product: HaloTransport
       - package: HaloKit
         product: HaloTrackpad
+      - package: HaloKit
+        product: HaloDashboard
     info:
       path: Apps/HaloPad/Resources/Info.plist
       properties:
         CFBundleDisplayName: Halo
         UILaunchScreen: {}
+        # Mostly landscape on a desk, but iPadOS 26 resizes apps freely, so the grid adapts to any shape.
         UISupportedInterfaceOrientations~ipad:
           - UIInterfaceOrientationLandscapeLeft
           - UIInterfaceOrientationLandscapeRight
@@ -147,6 +150,7 @@ schemes:
         - package: HaloKit/HaloCoreTests
         - package: HaloKit/HaloProtocolTests
         - package: HaloKit/HaloTrackpadTests
+        - package: HaloKit/HaloDashboardTests
   HaloMac:
     build:
       targets:

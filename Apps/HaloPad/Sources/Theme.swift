@@ -1,16 +1,37 @@
 import SwiftUI
 
-/// Halo's palette: warm, low-contrast, nothing that shouts unless it must.
+/// Halo's visual language: white type in a few weights of ink over a living, blurred backdrop,
+/// with Liquid Glass reserved for what you touch.
 extension ShapeStyle where Self == Color {
-    /// The warm off-white used for hero text.
-    static var haloInk: Color { Color(red: 1.0, green: 0.92, blue: 0.82) }
-    /// Cards and raised surfaces on the black background.
-    static var haloSurface: Color { Color(white: 1, opacity: 0.06) }
-    /// Reserved for things that need you.
-    static var haloAttention: Color { Color(red: 1.0, green: 0.67, blue: 0.35) }
+    static var ink: Color { .white.opacity(0.96) }
+    static var inkSecondary: Color { .white.opacity(0.62) }
+    static var inkTertiary: Color { .white.opacity(0.38) }
+    static var inkHairline: Color { .white.opacity(0.1) }
+
+    /// Reserved for things that need you. Always paired with an icon and words.
+    static var attention: Color { Color(red: 1.0, green: 0.68, blue: 0.32) }
+    /// Work in progress.
+    static var progress: Color { Color(red: 0.42, green: 0.86, blue: 0.52) }
+}
+
+extension Font {
+    /// Hero numbers and the clock: SF at its thinnest, with digits that don't jitter.
+    static func hero(_ size: CGFloat) -> Font {
+        .system(size: size, weight: .thin).monospacedDigit()
+    }
+
+    /// Small spaced capitals, e.g. "IN FOCUS" or "MUSIC · MAC".
+    static let eyebrow = Font.system(size: 10, weight: .semibold)
+}
+
+extension View {
+    /// The spaced small-caps treatment for `Font.eyebrow` labels.
+    func eyebrowStyle() -> some View {
+        font(.eyebrow).tracking(1.6).textCase(.uppercase)
+    }
 }
 
 extension Animation {
     /// "Quiet by default": slow, eased transitions.
-    static let halo = Animation.easeInOut(duration: 0.6)
+    static let halo = Animation.smooth(duration: 0.6)
 }

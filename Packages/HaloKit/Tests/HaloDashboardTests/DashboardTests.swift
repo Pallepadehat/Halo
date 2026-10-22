@@ -14,7 +14,7 @@ import Testing
 
     @Test func addingShrinksToTheMinimumWhenTheDefaultWontFit() throws {
         var page = DashboardPage(title: "Test", widgets: [
-            Widget(kind: .trackpad, frame: GridFrame(x: 0, y: 0, width: 12, height: 6)),
+            DashboardWidget(kind: .trackpad, frame: GridFrame(x: 0, y: 0, width: 12, height: 6)),
         ])
         let clock = try page.adding(.clock)
         #expect(clock.frame.size == WidgetKind.clock.minimumSize)
@@ -23,7 +23,7 @@ import Testing
 
     @Test func aFullPageRefusesNewWidgets() {
         var page = DashboardPage(title: "Full", widgets: [
-            Widget(kind: .trackpad, frame: GridFrame(x: 0, y: 0, width: 12, height: 8)),
+            DashboardWidget(kind: .trackpad, frame: GridFrame(x: 0, y: 0, width: 12, height: 8)),
         ])
         let added = page.add(.cpu)
         #expect(added == nil)
@@ -115,7 +115,7 @@ import Testing
 
 private extension DashboardPage {
     /// `add`, failing the test if the page had no room.
-    mutating func adding(_ kind: WidgetKind) throws -> Widget {
+    mutating func adding(_ kind: WidgetKind) throws -> DashboardWidget {
         let widget = add(kind)
         return try #require(widget)
     }
