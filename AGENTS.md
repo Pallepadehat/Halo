@@ -109,7 +109,13 @@ The PRD budget is **< 20 ms p95, iPad touch to Mac pointer**. Treat every change
 
 ## Troubleshooting
 
-- **The iPad can't find the Mac / `Listener failed: -65555: NoAuth`.** Bonjour was refused by Local Network privacy. Every target must be signed by a real team (`DEVELOPMENT_TEAM` in `project.yml`): macOS ties the permission to the code signature, and ad-hoc builds are refused. Then allow *Halo Helper* under System Settings › Privacy & Security › Local Network, and *Halo* under the same pane on the iPad. Both apps detect this (`Error.isLocalNetworkDenied`) and link to Settings.
+- **The iPad can't find the Mac / `Listener failed: -65555: NoAuth`.** Bonjour refused to advertise. Check these in order:
+  1. **Not sandboxed.** The helper must never have App Sandbox. Don't add it under Signing & Capabilities, and regenerate with `xcodegen generate` if someone did. A sandboxed helper also shows a red warning in its menu.
+  2. **Run from a standard location.** mDNSResponder only trusts `NSBonjourServices` from apps it can read via LaunchServices (`/Applications`, `~/Applications`). Debug builds install to `~/Applications/Halo Helper.app` for this reason. A copy run from DerivedData or `/tmp` fails with "Info.plist(NSBonjourServices) does not allow".
+  3. **Signed by the team** (`DEVELOPMENT_TEAM` in `project.yml`). Ad-hoc builds are refused.
+  4. **Local Network allowed** for *Halo Helper* (System Settings › Privacy & Security › Local Network) and for *Halo* on the iPad. Both apps detect this (`Error.isLocalNetworkDenied`) and link to Settings.
+- **Reading the logs:** in zsh, `log` is a shell builtin, so use `/usr/bin/log show --predicate 'subsystem == "app.halo"'`. For Bonjour trust errors, filter on `process == "mDNSResponder"`.
+- `Unable to obtain a task name port right for pid …` is AppKit asking about WindowServer. It's harmless and not ours.
 - **The pointer doesn't move.** Allow *Halo Helper* under System Settings › Privacy & Security › Accessibility. A rebuilt app with a new signature may need to be re-added.
 - Both devices must be on the same network, or close enough for peer-to-peer Wi-Fi.
 
