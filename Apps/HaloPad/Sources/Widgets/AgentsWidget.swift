@@ -22,6 +22,7 @@ struct AgentsWidget: View {
                     }
                 }
                 .scrollIndicators(.hidden)
+                .scrollEdgeEffectStyle(.soft, for: .vertical)
             }
         }
         .padding(.horizontal, 12)
@@ -72,13 +73,22 @@ private struct AgentRow: View {
                 }
             }
             Spacer(minLength: 12)
-            Text([session.project, session.tool.displayName].compactMap(\.self).joined(separator: " · "))
-                .font(.caption2)
-                .foregroundStyle(.inkTertiary)
-                .padding(.top, 3)
+            VStack(alignment: .trailing, spacing: 10) {
+                Text([session.project, session.tool.displayName].compactMap(\.self).joined(separator: " · "))
+                    .font(.caption2)
+                    .foregroundStyle(.inkTertiary)
+                Image(systemName: "arrow.up.right")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.inkTertiary)
+                    .accessibilityHidden(true)
+            }
+            .padding(.top, 3)
         }
         .padding(.vertical, 16)
         .contentShape(.rect)
+        // Tap a session to bring its terminal forward on the Mac.
+        .onTapGesture { model.bringForward(session) }
+        .accessibilityAction(named: "Show on Mac") { model.bringForward(session) }
     }
 
     private var statusText: LocalizedStringKey {

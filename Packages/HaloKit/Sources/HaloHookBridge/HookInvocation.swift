@@ -6,10 +6,13 @@ public struct HookInvocation: Codable, Sendable, Equatable {
     public let tool: AgentTool
     /// The JSON object the agent wrote to the hook's stdin, untouched.
     public let payload: Data
+    /// The agent process that ran the hook, so the helper can find the terminal it lives in.
+    public let parentProcess: Int32?
 
-    public init(tool: AgentTool, payload: Data) {
+    public init(tool: AgentTool, payload: Data, parentProcess: Int32? = nil) {
         self.tool = tool
         self.payload = payload
+        self.parentProcess = parentProcess
     }
 }
 

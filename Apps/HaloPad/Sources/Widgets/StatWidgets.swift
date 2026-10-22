@@ -97,14 +97,24 @@ private struct StatLayout<Value: View, Accessory: View, Callout: View>: View {
         GeometryReader { geometry in
             // 1 at a comfortable 190 pt tall, down to 0.6 on the smallest tiles.
             let scale = min(max(geometry.size.height / 190, 0.6), 1)
+            // Small tiles stack like Apple's small widgets: gauge up beside the label, number below.
+            let isNarrow = geometry.size.width < 300
             VStack(alignment: .leading, spacing: 12 * scale) {
-                Label(label, systemImage: symbol)
-                    .font(.footnote.weight(.medium))
-                    .foregroundStyle(.inkSecondary)
+                HStack {
+                    Label(label, systemImage: symbol)
+                        .font(.footnote.weight(.medium))
+                        .foregroundStyle(.inkSecondary)
+                    if isNarrow {
+                        Spacer(minLength: 8)
+                        accessory(scale * 0.62)
+                    }
+                }
                 HStack(alignment: .center) {
                     value(scale)
-                    Spacer(minLength: 12)
-                    accessory(scale)
+                    if !isNarrow {
+                        Spacer(minLength: 12)
+                        accessory(scale)
+                    }
                 }
                 if geometry.size.height > 150 {
                     callout
@@ -117,8 +127,6 @@ private struct StatLayout<Value: View, Accessory: View, Callout: View>: View {
                         .transition(.opacity)
                 }
             }
-            .padding(.horizontal, 8)
-            .padding(.vertical, 4)
         }
     }
 }

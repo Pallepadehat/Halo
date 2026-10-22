@@ -104,3 +104,15 @@ import HaloCore
         }
     }
 }
+
+@Suite struct HostAppTests {
+    @Test func walksUpToLaunchd() {
+        let parents: [Int32: Int32] = [900: 800, 800: 500, 500: 1]
+        #expect(HostApp.ancestors(of: 900, parent: { parents[$0] }) == [900, 800, 500])
+    }
+
+    @Test func stopsOnALoop() {
+        let parents: [Int32: Int32] = [10: 20, 20: 10]
+        #expect(HostApp.ancestors(of: 10, parent: { parents[$0] }) == [10, 20])
+    }
+}

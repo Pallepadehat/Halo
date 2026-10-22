@@ -25,6 +25,7 @@ public struct TouchPoint: Sendable, Equatable {
 /// | 2       | move                 | scroll                         |
 /// | 2       | pinch                | zoom in / out                  |
 /// | 3       | swipe                | spaces, Mission Control, Exposé |
+/// | 3, 4    | tap                  | a custom gesture (`takeGesture`) |
 ///
 /// Pure and clock-free: callers pass timestamps in, so every gesture is a deterministic test.
 /// Events are emitted as soon as a gesture is unambiguous, never after a recognition delay.
@@ -46,6 +47,7 @@ public struct TrackpadInterpreter: Sendable {
     public let configuration: Configuration
     private var gesture: Gesture?
     private var pendingMomentum: ScrollMomentum?
+    private var pendingGesture: TrackpadGesture?
 
     public init(configuration: Configuration = Configuration()) {
         self.configuration = configuration
@@ -61,6 +63,12 @@ public struct TrackpadInterpreter: Sendable {
     public mutating func takeMomentum() -> ScrollMomentum? {
         defer { pendingMomentum = nil }
         return pendingMomentum
+    }
+
+    /// A custom gesture just completed, if any. Callers decide what it does.
+    public mutating func takeGesture() -> TrackpadGesture? {
+        defer { pendingGesture = nil }
+        return pendingGesture
     }
 
     /// Feed the complete set of touches after every change: began, moved or ended.
@@ -162,8 +170,11 @@ public struct TrackpadInterpreter: Sendable {
         switch gesture.maximumFingerCount {
         case 1: return [.click(.left)]
         case 2: return [.click(.right)]
-        default: return []
+        case 3: pendingGesture = .threeFingerTap
+        case 4: pendingGesture = .fourFingerTap
+        default: break
         }
+        return []
     }
 }
 

@@ -18,6 +18,8 @@ public actor AgentCoordinator {
     private let updatesContinuation: AsyncStream<[AgentSession]>.Continuation
     private var store = AgentSessionStore()
     private var pendingDecisions: [ApprovalRequest.ID: CheckedContinuation<ApprovalDecision?, Never>] = [:]
+    /// The agent process behind each session, from its latest hook call.
+    private var hostProcesses: [AgentSession.ID: Int32] = [:]
 
     public init(adapters: [any AgentAdapter] = .all, approvalWindow: Duration? = defaultApprovalWindow) {
         self.adapters = Dictionary(adapters.map { ($0.tool, $0) }, uniquingKeysWith: { _, last in last })
@@ -40,6 +42,11 @@ public actor AgentCoordinator {
         else { return .passThrough }
 
         apply(event)
+        if case .sessionEnded = event.kind {
+            hostProcesses[event.sessionID] = nil
+        } else if let process = invocation.parentProcess {
+            hostProcesses[event.sessionID] = process
+        }
 
         guard case .approvalRequested(let request) = event.kind else {
             return adapter.reply(to: event, decision: nil)
@@ -48,6 +55,11 @@ public actor AgentCoordinator {
         store.removeApproval(request.id, in: request.sessionID, wasAnswered: decision != nil)
         publish()
         return adapter.reply(to: event, decision: decision)
+    }
+
+    /// The agent process behind a session, to bring its window forward.
+    public func hostProcess(for session: AgentSession.ID) -> Int32? {
+        hostProcesses[session]
     }
 
     /// Answers an open permission request. Late answers (after the window closed) are ignored.

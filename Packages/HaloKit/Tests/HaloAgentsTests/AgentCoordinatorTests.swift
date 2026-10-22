@@ -55,3 +55,15 @@ import HaloHookBridge
         throw CancellationError()
     }
 }
+
+@Suite struct HostProcessTests {
+    @Test func remembersTheAgentProcessUntilTheSessionEnds() async {
+        let coordinator = AgentCoordinator()
+        _ = await coordinator.handle(HookInvocation(tool: .claudeCode, payload: Fixture.claudePrompt, parentProcess: 4242))
+        #expect(await coordinator.hostProcess(for: "claude-code:abc123") == 4242)
+
+        let end = Data(#"{"session_id":"abc123","hook_event_name":"SessionEnd"}"#.utf8)
+        _ = await coordinator.handle(HookInvocation(tool: .claudeCode, payload: end, parentProcess: 4242))
+        #expect(await coordinator.hostProcess(for: "claude-code:abc123") == nil)
+    }
+}

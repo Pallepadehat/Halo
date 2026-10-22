@@ -1,5 +1,6 @@
 import HaloAgents
 import HaloCore
+import HaloDesktop
 import HaloHookBridge
 import Observation
 import os
@@ -55,6 +56,14 @@ final class AgentHub {
 
     func resolve(_ id: ApprovalRequest.ID, with decision: ApprovalDecision) {
         Task { await coordinator.resolve(id, with: decision) }
+    }
+
+    /// Brings the app the session runs in (its terminal or editor) to the front on the Mac.
+    func bringForward(_ session: AgentSession.ID) {
+        Task {
+            guard let process = await coordinator.hostProcess(for: session) else { return }
+            HostApp.activate(containing: process)
+        }
     }
 
     func setIntegration(_ tool: AgentTool, enabled: Bool) {

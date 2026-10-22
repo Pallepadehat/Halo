@@ -6,6 +6,8 @@ import UIKit
 /// SwiftUI wrapper around the raw-touch surface.
 struct TrackpadSurface: UIViewRepresentable {
     let onEvents: ([PointerEvent]) -> Void
+    /// The person's own gestures, such as a three-finger tap.
+    var onGesture: (TrackpadGesture) -> Void = { _ in }
     /// Lets the page stop paging while a finger is on the trackpad.
     var onTouchingChanged: (Bool) -> Void = { _ in }
 
@@ -15,6 +17,7 @@ struct TrackpadSurface: UIViewRepresentable {
 
     func updateUIView(_ view: TouchSurfaceView, context: Context) {
         view.onEvents = onEvents
+        view.onGesture = onGesture
         view.onTouchingChanged = onTouchingChanged
     }
 }
@@ -25,6 +28,7 @@ struct TrackpadSurface: UIViewRepresentable {
 final class TouchSurfaceView: UIView {
     var onEvents: ([PointerEvent]) -> Void = { _ in }
     var onTouchingChanged: (Bool) -> Void = { _ in }
+    var onGesture: (TrackpadGesture) -> Void = { _ in }
 
     private var interpreter = TrackpadInterpreter()
     private var activeTouches: Set<UITouch> = []
@@ -79,6 +83,10 @@ final class TouchSurfaceView: UIView {
         }
         emit(interpreter.update(points, at: time))
         if let launched = interpreter.takeMomentum() { startMomentum(launched) }
+        if let gesture = interpreter.takeGesture() {
+            UIImpactFeedbackGenerator(style: .soft).impactOccurred()
+            onGesture(gesture)
+        }
         scheduleHoldIfNeeded()
         drawFingerprints()
     }

@@ -22,10 +22,16 @@ struct DashboardView: View {
                     }
                     .frame(height: 56)
 
-                    Pager(pages: store.pages, selection: $store.currentPageID, isEnabled: !store.isWidgetCapturingTouches) { page in
-                        PageGridView(page: page)
-                            .padding(.horizontal, 32)
-                            .padding(.top, 8)
+                    if store.isEmpty, !store.isEditing {
+                        HelloView()
+                            .transition(.opacity)
+                    } else {
+                        Pager(pages: store.pages, selection: $store.currentPageID, isEnabled: !store.isWidgetCapturingTouches) { page in
+                            PageGridView(page: page)
+                                .padding(.horizontal, 32)
+                                .padding(.top, 8)
+                        }
+                        .transition(.opacity)
                     }
 
                     PageIndicator()
@@ -45,8 +51,19 @@ struct DashboardView: View {
                 .allowsHitTesting(false)
                 .animation(.easeInOut(duration: 2), value: ambience.isNight)
         }
+        .sheet(isPresented: $store.isShowingGallery) { WidgetGallery() }
+        .sheet(item: configuringWidget) { widget in WidgetSettings(widget: widget) }
         .animation(.halo, value: store.isEditing)
+        .animation(.halo, value: store.isEmpty)
         .animation(.smooth(duration: 0.5), value: store.currentPageID)
         .task { await ambience.run() }
+    }
+
+    private var configuringWidget: Binding<DashboardWidget?> {
+        Binding {
+            store.configuringWidgetID.flatMap(store.widget)
+        } set: { widget in
+            store.configuringWidgetID = widget?.id
+        }
     }
 }

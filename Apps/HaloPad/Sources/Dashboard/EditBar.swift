@@ -4,13 +4,12 @@ import SwiftUI
 /// Replaces the status bar while editing: add widgets, name or delete the page, and finish.
 struct EditBar: View {
     @Environment(DashboardStore.self) private var store
-    @State private var isShowingGallery = false
     @State private var isConfirmingDelete = false
     @State private var title = ""
 
     var body: some View {
         HStack(spacing: 14) {
-            Button { isShowingGallery = true } label: {
+            Button { store.isShowingGallery = true } label: {
                 Label("Add Widget", systemImage: "plus")
                     .labelStyle(.iconOnly)
                     .font(.system(size: 16, weight: .semibold))
@@ -51,7 +50,6 @@ struct EditBar: View {
         .padding(.horizontal, 28)
         .onAppear { title = store.currentPage.title }
         .onChange(of: store.currentPageID) { title = store.currentPage.title }
-        .sheet(isPresented: $isShowingGallery) { WidgetGallery() }
         .confirmationDialog("Delete “\(store.currentPage.title)”?", isPresented: $isConfirmingDelete, titleVisibility: .visible) {
             Button("Delete Page", role: .destructive, action: store.removeCurrentPage)
         } message: {

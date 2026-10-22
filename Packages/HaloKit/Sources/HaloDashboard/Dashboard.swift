@@ -1,14 +1,50 @@
 import Foundation
 
+/// Per-widget settings. Optional throughout, so new settings never break saved layouts.
+public struct WidgetOptions: Codable, Sendable, Hashable {
+    /// Deck: the actions to show, in order. `nil` shows everything the Mac offers.
+    public var deckActions: [String]?
+    /// Trackpad: a Deck action to run for each custom gesture, keyed by `TrackpadGesture` raw value.
+    public var gestureActions: [String: String]
+
+    public init(deckActions: [String]? = nil, gestureActions: [String: String] = [:]) {
+        self.deckActions = deckActions
+        self.gestureActions = gestureActions
+    }
+
+    public init(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        deckActions = try container.decodeIfPresent([String].self, forKey: .deckActions)
+        gestureActions = try container.decodeIfPresent([String: String].self, forKey: .gestureActions) ?? [:]
+    }
+}
+
 public struct DashboardWidget: Codable, Sendable, Hashable, Identifiable {
     public let id: UUID
     public let kind: WidgetKind
-    public var frame: GridFrame
+    public var family: WidgetFamily
+    public var origin: GridPoint
+    public var options: WidgetOptions
 
-    public init(id: UUID = UUID(), kind: WidgetKind, frame: GridFrame) {
+    public init(id: UUID = UUID(), kind: WidgetKind, family: WidgetFamily? = nil, origin: GridPoint, options: WidgetOptions = WidgetOptions()) {
         self.id = id
         self.kind = kind
-        self.frame = frame
+        self.family = family ?? kind.defaultFamily
+        self.origin = origin
+        self.options = options
+    }
+
+    public init(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(UUID.self, forKey: .id)
+        kind = try container.decode(WidgetKind.self, forKey: .kind)
+        family = try container.decode(WidgetFamily.self, forKey: .family)
+        origin = try container.decode(GridPoint.self, forKey: .origin)
+        options = try container.decodeIfPresent(WidgetOptions.self, forKey: .options) ?? WidgetOptions()
+    }
+
+    public var frame: GridFrame {
+        GridFrame(origin: origin, size: family.size)
     }
 }
 
@@ -37,46 +73,74 @@ public struct DashboardPage: Sendable, Hashable, Identifiable {
     }
 
     /// The first free spot for `size`, scanning row by row like a Home Screen.
-    public func firstAvailableFrame(for size: GridSize) -> GridFrame? {
-        for y in 0...(Grid.rows - size.height) {
-            for x in 0...(Grid.columns - size.width) {
-                let frame = GridFrame(x: x, y: y, width: size.width, height: size.height)
-                if isAvailable(frame) { return frame }
+    public func firstAvailableOrigin(for size: GridSize) -> GridPoint? {
+        for y in 0...max(Grid.rows - size.height, 0) {
+            for x in 0...max(Grid.columns - size.width, 0) {
+                let origin = GridPoint(x: x, y: y)
+                if isAvailable(GridFrame(origin: origin, size: size)) { return origin }
             }
         }
         return nil
     }
 
-    /// Adds at the default size, or the smallest that fits. `nil` when the page is full.
+    /// Adds in `family`, or the default, falling back to smaller sizes. `nil` when the page is full.
     @discardableResult
-    public mutating func add(_ kind: WidgetKind) -> DashboardWidget? {
-        let candidates = [kind.defaultSize, kind.minimumSize]
-        guard let frame = candidates.lazy.compactMap(firstAvailableFrame).first else { return nil }
-        let widget = DashboardWidget(kind: kind, frame: frame)
-        widgets.append(widget)
-        return widget
+    public mutating func add(_ kind: WidgetKind, family: WidgetFamily? = nil) -> DashboardWidget? {
+        let preferred = family ?? kind.defaultFamily
+        let candidates = [preferred] + kind.families.filter { $0 < preferred }.reversed()
+        for candidate in candidates {
+            guard let origin = firstAvailableOrigin(for: candidate.size) else { continue }
+            let widget = DashboardWidget(kind: kind, family: candidate, origin: origin)
+            widgets.append(widget)
+            return widget
+        }
+        return nil
     }
 
     @discardableResult
     public mutating func move(_ id: DashboardWidget.ID, to origin: GridPoint) -> Bool {
-        update(id) { GridFrame(origin: origin, size: $0.frame.size) }
+        update(id) { widget, page in
+            let frame = GridFrame(origin: origin, size: widget.family.size)
+            guard page.isAvailable(frame, ignoring: id) else { return false }
+            widget.origin = origin
+            return true
+        }
     }
 
-    /// Resizes within the kind's limits; the top-left corner stays put.
+    /// Changes size, keeping the top-left corner, or nudging it up and left if the new size
+    /// would run off the grid. Refused if the widget doesn't come in `family` or there's no room.
     @discardableResult
-    public mutating func resize(_ id: DashboardWidget.ID, to size: GridSize) -> Bool {
-        update(id) { GridFrame(origin: $0.frame.origin, size: size.clamped(to: $0.kind.sizeRange)) }
+    public mutating func resize(_ id: DashboardWidget.ID, to family: WidgetFamily) -> Bool {
+        update(id) { widget, page in
+            guard widget.kind.families.contains(family), widget.family != family else { return false }
+            let origin = GridPoint(
+                x: min(widget.origin.x, Grid.columns - family.size.width),
+                y: min(widget.origin.y, Grid.rows - family.size.height)
+            )
+            guard page.isAvailable(GridFrame(origin: origin, size: family.size), ignoring: id) else { return false }
+            widget.family = family
+            widget.origin = origin
+            return true
+        }
+    }
+
+    public mutating func setOptions(_ options: WidgetOptions, for id: DashboardWidget.ID) {
+        _ = update(id) { widget, _ in
+            widget.options = options
+            return true
+        }
     }
 
     public mutating func remove(_ id: DashboardWidget.ID) {
         widgets.removeAll { $0.id == id }
     }
 
-    private mutating func update(_ id: DashboardWidget.ID, frame makeFrame: (DashboardWidget) -> GridFrame) -> Bool {
+    /// Changes one widget; `change` sees the page as it was, to check for room.
+    private mutating func update(_ id: DashboardWidget.ID, _ change: (inout DashboardWidget, DashboardPage) -> Bool) -> Bool {
         guard let index = widgets.firstIndex(where: { $0.id == id }) else { return false }
-        let frame = makeFrame(widgets[index])
-        guard frame != widgets[index].frame, isAvailable(frame, ignoring: id) else { return false }
-        widgets[index].frame = frame
+        var widget = widgets[index]
+        guard change(&widget, self) else { return false }
+        widgets[index] = widget
         return true
     }
 }
@@ -86,13 +150,15 @@ extension DashboardPage: Codable {
         case id, title, widgets
     }
 
-    /// Skips widgets whose kind this build doesn't know, so a layout saved by a newer or older
-    /// version still opens rather than resetting to the standard one.
+    /// Skips widgets this build can't read (an unknown kind, a size it no longer offers), so a
+    /// layout from a newer or older version still opens.
     public init(from decoder: any Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         id = try container.decode(UUID.self, forKey: .id)
         title = try container.decode(String.self, forKey: .title)
-        widgets = try container.decode([Lossy<DashboardWidget>].self, forKey: .widgets).compactMap(\.value)
+        widgets = try container.decode([Lossy<DashboardWidget>].self, forKey: .widgets)
+            .compactMap(\.value)
+            .filter { $0.kind.families.contains($0.family) && $0.frame.fitsGrid }
     }
 
     public func encode(to encoder: any Encoder) throws {
@@ -113,11 +179,23 @@ private struct Lossy<Value: Decodable>: Decodable {
 }
 
 /// Every page, in order. The iPad owns this: it's how *this* person arranged *their* desk.
-public struct Dashboard: Codable, Sendable, Hashable {
+public struct Dashboard: Sendable, Hashable {
+    /// Bumped when the grid itself changes; older layouts can't be mapped and start fresh.
+    public static let version = 2
+
     public private(set) var pages: [DashboardPage]
 
     public init(pages: [DashboardPage]) {
-        self.pages = pages.isEmpty ? [DashboardPage(title: "Home")] : pages
+        self.pages = pages.isEmpty ? [DashboardPage(title: String(localized: "Home"))] : pages
+    }
+
+    /// A first launch: one empty page, waiting to be filled.
+    public static var empty: Dashboard {
+        Dashboard(pages: [])
+    }
+
+    public var isEmpty: Bool {
+        pages.allSatisfy(\.widgets.isEmpty)
     }
 
     public subscript(page id: DashboardPage.ID) -> DashboardPage? {
@@ -155,5 +233,25 @@ public struct Dashboard: Codable, Sendable, Hashable {
         guard let source = index(of: id) else { return }
         let page = pages.remove(at: source)
         pages.insert(page, at: min(max(destination, 0), pages.count))
+    }
+}
+
+extension Dashboard: Codable {
+    private enum CodingKeys: String, CodingKey {
+        case version, pages
+    }
+
+    public struct IncompatibleVersion: Error {}
+
+    public init(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        guard try container.decodeIfPresent(Int.self, forKey: .version) == Self.version else { throw IncompatibleVersion() }
+        self.init(pages: try container.decode([DashboardPage].self, forKey: .pages))
+    }
+
+    public func encode(to encoder: any Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(Self.version, forKey: .version)
+        try container.encode(pages, forKey: .pages)
     }
 }

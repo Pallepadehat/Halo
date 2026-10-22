@@ -154,3 +154,27 @@ private struct Hand {
         #expect(moves == [20, 5])
     }
 }
+
+@Suite struct CustomGestureTests {
+    @Test(arguments: [(3, TrackpadGesture.threeFingerTap), (4, TrackpadGesture.fourFingerTap)])
+    func multiFingerTapsBecomeCustomGestures(fingers: Int, gesture: TrackpadGesture) {
+        var interpreter = TrackpadInterpreter()
+        let touches = (0..<fingers).map { TouchPoint(id: $0, x: 100 + Double($0) * 40, y: 100) }
+        _ = interpreter.update(Array(touches.prefix(1)), at: 0)
+        _ = interpreter.update(touches, at: 0.02)
+        let events = interpreter.update([], at: 0.1)
+
+        #expect(events.isEmpty, "A custom gesture never clicks")
+        #expect(interpreter.takeGesture() == gesture)
+        #expect(interpreter.takeGesture() == nil, "Taken once")
+    }
+
+    @Test func aThreeFingerSwipeIsNotATap() {
+        var interpreter = TrackpadInterpreter()
+        let start = [(100.0, 100.0), (140.0, 100.0), (180.0, 100.0)]
+        _ = interpreter.update(start.enumerated().map { TouchPoint(id: $0.offset, x: $0.element.0, y: $0.element.1) }, at: 0)
+        _ = interpreter.update(start.enumerated().map { TouchPoint(id: $0.offset, x: $0.element.0 + 90, y: $0.element.1) }, at: 0.05)
+        _ = interpreter.update([], at: 0.1)
+        #expect(interpreter.takeGesture() == nil)
+    }
+}

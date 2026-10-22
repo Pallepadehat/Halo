@@ -46,9 +46,12 @@ final class Helper {
             input.play(event)
         }
         pads.onMessage = { [agents, desktop] message in
-            if case .resolveApproval(let id, let decision) = message {
+            switch message {
+            case .resolveApproval(let id, let decision):
                 agents.resolve(id, with: decision)
-            } else {
+            case .agentAction(let session, .bringForward):
+                agents.bringForward(session)
+            default:
                 _ = desktop.handle(message)
             }
         }

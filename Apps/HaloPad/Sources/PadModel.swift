@@ -68,6 +68,10 @@ final class PadModel {
         link.send(.resolveApproval(id: request.id, decision: decision))
     }
 
+    func bringForward(_ session: AgentSession) {
+        link.send(.agentAction(sessionID: session.id, action: .bringForward))
+    }
+
     func launch(_ item: LaunchItem) {
         link.send(.launch(id: item.id))
     }

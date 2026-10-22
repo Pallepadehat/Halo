@@ -33,15 +33,15 @@ public enum WidgetKind: String, Codable, Sendable, CaseIterable, Identifiable {
     public var summary: String {
         switch self {
         case .clock: "The time, the date and what's next on your calendar."
-        case .nowPlaying: "Music and Spotify on your Mac, without switching windows."
-        case .brightness: "Your display's brightness, one swipe away."
+        case .nowPlaying: "Music on your Mac, without switching windows."
+        case .brightness: "Every display's brightness, one swipe away."
         case .volume: "Your Mac's output volume."
         case .cpu: "How hard your Mac is working, and what's responsible."
         case .memory: "Memory in use, and the app holding the most."
         case .storage: "Space left on your startup disk."
         case .network: "Download and upload, right now."
         case .agents: "Claude Code, Codex and Cursor. Approve without switching."
-        case .trackpad: "A large trackpad for your Mac."
+        case .trackpad: "A large trackpad for your Mac, with gestures of your own."
         case .deck: "Your Shortcuts and everyday actions, one tap each."
         }
     }
@@ -63,39 +63,30 @@ public enum WidgetKind: String, Codable, Sendable, CaseIterable, Identifiable {
         }
     }
 
-    public var minimumSize: GridSize {
+    /// The sizes this widget is designed for, smallest first.
+    public var families: [WidgetFamily] {
         switch self {
-        case .clock: GridSize(width: 3, height: 2)
-        case .nowPlaying: GridSize(width: 4, height: 1)
-        case .brightness, .volume: GridSize(width: 1, height: 3)
-        case .cpu, .memory, .storage, .network: GridSize(width: 3, height: 2)
-        case .agents: GridSize(width: 4, height: 3)
-        case .trackpad: GridSize(width: 3, height: 3)
-        case .deck: GridSize(width: 3, height: 2)
+        case .clock: [.small, .medium, .large, .extraLarge]
+        case .nowPlaying: [.small, .medium, .large]
+        case .brightness, .volume: [.slim]
+        case .cpu, .memory, .storage, .network: [.small, .medium, .large]
+        case .agents: [.medium, .large, .extraLarge]
+        case .trackpad: [.medium, .large, .extraLarge]
+        case .deck: [.small, .medium, .large]
         }
     }
 
-    public var defaultSize: GridSize {
+    public var defaultFamily: WidgetFamily {
         switch self {
-        case .clock: GridSize(width: 8, height: 3)
-        case .nowPlaying: GridSize(width: 6, height: 1)
-        case .brightness, .volume: GridSize(width: 1, height: 4)
-        case .cpu, .memory, .storage, .network: GridSize(width: 5, height: 2)
-        case .agents: GridSize(width: 7, height: 6)
-        case .trackpad: GridSize(width: 4, height: 4)
-        case .deck: GridSize(width: 4, height: 3)
+        case .clock, .nowPlaying, .deck: .medium
+        case .brightness, .volume: .slim
+        case .cpu, .memory, .storage, .network: .small
+        case .agents, .trackpad: .large
         }
     }
 
-    public var maximumSize: GridSize {
-        switch self {
-        case .brightness, .volume: GridSize(width: 2, height: Grid.rows)
-        case .nowPlaying: GridSize(width: Grid.columns, height: 2)
-        default: GridSize(width: Grid.columns, height: Grid.rows)
-        }
-    }
-
-    public var sizeRange: ClosedRange<GridSize> {
-        minimumSize...maximumSize
+    /// Whether the widget has something to set up, shown as Edit Widget in edit mode.
+    public var isConfigurable: Bool {
+        self == .deck || self == .trackpad
     }
 }

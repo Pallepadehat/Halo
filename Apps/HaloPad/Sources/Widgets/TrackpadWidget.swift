@@ -5,6 +5,8 @@ import SwiftUI
 struct TrackpadWidget: View {
     @Environment(PadModel.self) private var model
     @Environment(DashboardStore.self) private var store
+    /// Deck actions to run for the person's own gestures, keyed by `TrackpadGesture`.
+    var gestureActions: [String: String] = [:]
 
     var body: some View {
         let shape = RoundedRectangle(cornerRadius: 28, style: .continuous)
@@ -12,6 +14,9 @@ struct TrackpadWidget: View {
             if model.isTrackpadAvailable {
                 TrackpadSurface { events in
                     model.send(events)
+                } onGesture: { gesture in
+                    guard let id = gestureActions[gesture.rawValue], let action = model.deck.first(where: { $0.id == id }) else { return }
+                    model.run(action)
                 } onTouchingChanged: { isTouching in
                     store.isWidgetCapturingTouches = isTouching
                 }

@@ -59,7 +59,8 @@ struct PageIndicator: View {
 
     var body: some View {
         HStack(spacing: 8) {
-            ForEach(Array(store.pages.enumerated()), id: \.element.id) { index, page in
+            // One page needs no indicator, unless editing, where its + adds a second.
+            ForEach(store.pages.count > 1 || store.isEditing ? Array(store.pages.enumerated()) : [], id: \.element.id) { index, page in
                 Button { store.show(pageAt: index) } label: {
                     Capsule()
                         .fill(page.id == store.currentPageID ? Color.ink : Color.inkTertiary)

@@ -18,6 +18,8 @@ struct PageGridView: View {
                     .contentShape(.rect)
                     .onLongPressGesture(minimumDuration: 0.5) { store.isEditing = true }
                     .sensoryFeedback(.impact(weight: .medium), trigger: store.isEditing) { _, isEditing in isEditing }
+                    .onAppear { store.pageSize = proxy.size }
+                    .onChange(of: proxy.size) { store.pageSize = proxy.size }
 
                 if store.isEditing, let preview {
                     let isValid = page.isAvailable(preview.frame, ignoring: preview.id)
@@ -59,7 +61,7 @@ private struct WidgetContainer: View {
     private var shape: RoundedRectangle { RoundedRectangle(cornerRadius: 26, style: .continuous) }
 
     var body: some View {
-        WidgetView(kind: widget.kind)
+        WidgetView(widget: widget)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .allowsHitTesting(!store.isEditing)
             .background {
@@ -75,11 +77,21 @@ private struct WidgetContainer: View {
                 }
             }
             .overlay(alignment: .bottomTrailing) {
-                if store.isEditing {
+                if store.isEditing, widget.kind.families.count > 1 {
                     ResizeHandle()
                         .offset(x: 6, y: 6)
                         .gesture(resize)
                         .transition(.scale.combined(with: .opacity))
+                }
+            }
+            .overlay {
+                // Tap a widget with settings while editing to open them, as on the Home Screen.
+                if store.isEditing, widget.kind.isConfigurable {
+                    Color.clear
+                        .contentShape(.rect)
+                        .onTapGesture { store.configuringWidgetID = widget.id }
+                        .accessibilityAddTraits(.isButton)
+                        .accessibilityLabel("Edit \(widget.kind.title)")
                 }
             }
             .modifier(Wiggle(isActive: store.isEditing && !isDragging, seed: widget.id.hashValue))
@@ -104,11 +116,11 @@ private struct WidgetContainer: View {
                 isDragging = true
                 dragOffset = drag.translation
                 let corner = CGPoint(x: rect.minX + drag.translation.width, y: rect.minY + drag.translation.height)
-                onPreview(GridFrame(origin: geometry.nearestOrigin(to: corner, for: widget.frame.size), size: widget.frame.size))
+                onPreview(GridFrame(origin: geometry.nearestOrigin(to: corner, for: widget.family.size), size: widget.family.size))
             }
             .onEnded { drag in
                 let corner = CGPoint(x: rect.minX + drag.translation.width, y: rect.minY + drag.translation.height)
-                store.move(widget.id, to: geometry.nearestOrigin(to: corner, for: widget.frame.size))
+                store.move(widget.id, to: geometry.nearestOrigin(to: corner, for: widget.family.size))
                 withAnimation(.spring(duration: 0.4, bounce: 0.2)) {
                     dragOffset = .zero
                     isDragging = false
@@ -117,25 +129,22 @@ private struct WidgetContainer: View {
             }
     }
 
+    /// Drags snap between the sizes the widget comes in, like the Home Screen's resize handle.
     private var resize: some Gesture {
         DragGesture(minimumDistance: 0, coordinateSpace: .local)
             .onChanged { drag in
-                onPreview(GridFrame(origin: widget.frame.origin, size: targetSize(for: drag.translation)))
+                let family = targetFamily(for: drag.translation)
+                onPreview(GridFrame(origin: widget.origin, size: family.size))
             }
             .onEnded { drag in
-                store.resize(widget.id, to: targetSize(for: drag.translation))
+                store.resize(widget.id, to: targetFamily(for: drag.translation))
                 onPreview(nil)
             }
     }
 
-    private func targetSize(for translation: CGSize) -> GridSize {
+    private func targetFamily(for translation: CGSize) -> WidgetFamily {
         let corner = CGPoint(x: rect.maxX + translation.width, y: rect.maxY + translation.height)
-        let size = geometry.nearestSize(reaching: corner, from: widget.frame.origin)
-        let range = widget.kind.sizeRange
-        return GridSize(
-            width: min(max(size.width, range.lowerBound.width), range.upperBound.width, Grid.columns - widget.frame.x),
-            height: min(max(size.height, range.lowerBound.height), range.upperBound.height, Grid.rows - widget.frame.y)
-        )
+        return geometry.nearestFamily(reaching: corner, from: widget.origin, among: widget.kind.families) ?? widget.family
     }
 }
 

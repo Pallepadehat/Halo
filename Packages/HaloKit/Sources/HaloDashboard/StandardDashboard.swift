@@ -1,30 +1,33 @@
 public extension Dashboard {
-    /// What a new iPad starts with: a calm home page, the Mac's health, agents beside a
-    /// trackpad, and a desk page for working the Mac from the iPad. The Dock sits beneath every
-    /// page, so it isn't part of any layout.
-    static var standard: Dashboard {
+    /// A full, considered set of pages: what the demo shows, and a starting point for screenshots.
+    /// New installs start from `empty` instead, so the person builds their own.
+    static var showcase: Dashboard {
         Dashboard(pages: [
             DashboardPage(title: "Home", widgets: [
-                DashboardWidget(kind: .brightness, frame: GridFrame(x: 0, y: 1, width: 1, height: 5)),
-                DashboardWidget(kind: .clock, frame: GridFrame(x: 2, y: 1, width: 8, height: 4)),
-                DashboardWidget(kind: .nowPlaying, frame: GridFrame(x: 3, y: 5, width: 6, height: 1)),
-                DashboardWidget(kind: .volume, frame: GridFrame(x: 11, y: 1, width: 1, height: 5)),
+                DashboardWidget(kind: .brightness, origin: GridPoint(x: 0, y: 1)),
+                DashboardWidget(kind: .clock, family: .large, origin: GridPoint(x: 3, y: 0)),
+                DashboardWidget(kind: .nowPlaying, family: .medium, origin: GridPoint(x: 3, y: 4)),
+                DashboardWidget(kind: .volume, origin: GridPoint(x: 11, y: 1)),
             ]),
             DashboardPage(title: "Pulse", widgets: [
-                DashboardWidget(kind: .cpu, frame: GridFrame(x: 0, y: 0, width: 6, height: 4)),
-                DashboardWidget(kind: .memory, frame: GridFrame(x: 6, y: 0, width: 6, height: 4)),
-                DashboardWidget(kind: .storage, frame: GridFrame(x: 0, y: 4, width: 6, height: 4)),
-                DashboardWidget(kind: .network, frame: GridFrame(x: 6, y: 4, width: 6, height: 4)),
+                DashboardWidget(kind: .cpu, family: .large, origin: GridPoint(x: 0, y: 0)),
+                DashboardWidget(kind: .memory, family: .small, origin: GridPoint(x: 6, y: 0)),
+                DashboardWidget(kind: .storage, family: .small, origin: GridPoint(x: 9, y: 0)),
+                DashboardWidget(kind: .network, family: .medium, origin: GridPoint(x: 6, y: 2)),
+                DashboardWidget(kind: .nowPlaying, family: .medium, origin: GridPoint(x: 0, y: 4)),
+                DashboardWidget(kind: .clock, family: .medium, origin: GridPoint(x: 6, y: 4)),
             ]),
             DashboardPage(title: "Agents", widgets: [
-                DashboardWidget(kind: .agents, frame: GridFrame(x: 0, y: 0, width: 7, height: 8)),
-                DashboardWidget(kind: .trackpad, frame: GridFrame(x: 8, y: 1, width: 4, height: 7)),
+                DashboardWidget(kind: .agents, family: .large, origin: GridPoint(x: 0, y: 0)),
+                DashboardWidget(kind: .trackpad, family: .large, origin: GridPoint(x: 6, y: 0)),
+                DashboardWidget(kind: .deck, family: .medium, origin: GridPoint(x: 0, y: 4)),
+                DashboardWidget(kind: .cpu, family: .small, origin: GridPoint(x: 6, y: 4)),
+                DashboardWidget(kind: .memory, family: .small, origin: GridPoint(x: 9, y: 4)),
             ]),
             DashboardPage(title: "Desk", widgets: [
-                DashboardWidget(kind: .trackpad, frame: GridFrame(x: 0, y: 0, width: 8, height: 8)),
-                DashboardWidget(kind: .nowPlaying, frame: GridFrame(x: 8, y: 0, width: 4, height: 2)),
-                DashboardWidget(kind: .deck, frame: GridFrame(x: 8, y: 2, width: 4, height: 4)),
-                DashboardWidget(kind: .cpu, frame: GridFrame(x: 8, y: 6, width: 4, height: 2)),
+                DashboardWidget(kind: .trackpad, family: .extraLarge, origin: GridPoint(x: 0, y: 0)),
+                DashboardWidget(kind: .nowPlaying, family: .medium, origin: GridPoint(x: 0, y: 4)),
+                DashboardWidget(kind: .deck, family: .medium, origin: GridPoint(x: 6, y: 4)),
             ]),
         ])
     }

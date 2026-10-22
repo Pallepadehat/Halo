@@ -53,9 +53,10 @@ struct HaloPadApp: App {
         let arguments = ProcessInfo.processInfo.arguments
         if let flag = arguments.firstIndex(of: "-HaloDemo") {
             let page = arguments.dropFirst(flag + 1).first.flatMap(Int.init) ?? 0
-            let store = DashboardStore(file: nil)
+            let store = DashboardStore(file: nil, fallback: arguments.contains("-HaloDemoEmpty") ? .empty : .showcase)
             store.show(pageAt: page)
-            store.isEditing = arguments.contains("-HaloDemoEditing")
+            store.isEditing = arguments.contains("-HaloDemoEditing") || arguments.contains("-HaloDemoGallery")
+            store.isShowingGallery = arguments.contains("-HaloDemoGallery")
             return (DemoData.model(), store)
         }
         #endif

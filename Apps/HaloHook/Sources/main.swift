@@ -16,6 +16,6 @@ guard CommandLine.arguments.count == 2, let tool = AgentTool(rawValue: CommandLi
 
 let payload = FileHandle.standardInput.readDataToEndOfFile()
 
-if let reply = try? HookBridgeClient.send(HookInvocation(tool: tool, payload: payload)) {
+if let reply = try? HookBridgeClient.send(HookInvocation(tool: tool, payload: payload, parentProcess: getppid())) {
     FileHandle.standardOutput.write(reply.output)
 }

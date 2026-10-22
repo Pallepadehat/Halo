@@ -51,26 +51,12 @@ public struct GridSize: Codable, Sendable, Hashable {
         self.width = width
         self.height = height
     }
-
-    func clamped(to range: ClosedRange<GridSize>) -> GridSize {
-        GridSize(
-            width: min(max(width, range.lowerBound.width), range.upperBound.width),
-            height: min(max(height, range.lowerBound.height), range.upperBound.height)
-        )
-    }
-}
-
-extension GridSize: Comparable {
-    /// Component-wise, so `min...max` reads as a size range.
-    public static func < (lhs: GridSize, rhs: GridSize) -> Bool {
-        lhs.width <= rhs.width && lhs.height <= rhs.height && lhs != rhs
-    }
 }
 
 public enum Grid {
-    /// Landscape iPad: twelve columns, eight rows.
+    /// Twelve columns by six rows: Small, Medium, Large and Extra Large all tile it exactly.
     public static let columns = 12
-    public static let rows = 8
+    public static let rows = 6
 }
 
 /// Converts between grid cells and points for a page of a given size.
@@ -78,7 +64,7 @@ public struct GridGeometry: Sendable, Equatable {
     public let bounds: CGSize
     public let spacing: CGFloat
 
-    public init(bounds: CGSize, spacing: CGFloat = 16) {
+    public init(bounds: CGSize, spacing: CGFloat = 18) {
         self.bounds = bounds
         self.spacing = spacing
     }
@@ -100,6 +86,11 @@ public struct GridGeometry: Sendable, Equatable {
         )
     }
 
+    /// The point size a family renders at on this page, e.g. for gallery previews.
+    public func size(of family: WidgetFamily) -> CGSize {
+        rect(for: GridFrame(origin: GridPoint(x: 0, y: 0), size: family.size)).size
+    }
+
     /// The cell origin nearest a point, e.g. while dragging a widget's top-left corner.
     public func nearestOrigin(to point: CGPoint, for size: GridSize) -> GridPoint {
         let pitch = CGSize(width: cellSize.width + spacing, height: cellSize.height + spacing)
@@ -111,13 +102,18 @@ public struct GridGeometry: Sendable, Equatable {
         )
     }
 
-    /// The size whose bottom-right corner lands nearest a point, measured from `origin`.
-    public func nearestSize(reaching point: CGPoint, from origin: GridPoint) -> GridSize {
-        let pitch = CGSize(width: cellSize.width + spacing, height: cellSize.height + spacing)
+    /// The family whose bottom-right corner lands nearest a point, measured from `origin`:
+    /// how a resize handle snaps between sizes, as on the Home Screen.
+    public func nearestFamily(reaching point: CGPoint, from origin: GridPoint, among families: [WidgetFamily]) -> WidgetFamily? {
         let start = rect(for: GridFrame(origin: origin, size: GridSize(width: 1, height: 1))).origin
-        return GridSize(
-            width: max(1, Int(((point.x - start.x + spacing) / pitch.width).rounded())),
-            height: max(1, Int(((point.y - start.y + spacing) / pitch.height).rounded()))
-        )
+        return families.min { lhs, rhs in
+            distance(from: start, to: point, for: lhs) < distance(from: start, to: point, for: rhs)
+        }
+    }
+
+    private func distance(from origin: CGPoint, to point: CGPoint, for family: WidgetFamily) -> CGFloat {
+        let size = self.size(of: family)
+        let corner = CGPoint(x: origin.x + size.width, y: origin.y + size.height)
+        return hypot(corner.x - point.x, corner.y - point.y)
     }
 }

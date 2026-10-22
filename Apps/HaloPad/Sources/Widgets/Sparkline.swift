@@ -27,7 +27,11 @@ struct Sparkline: View {
 
     @State private var selectedDate: Date?
 
+    /// Charts lays out every mark; a sparkline needs far fewer than the 300 samples it gets.
+    static let maximumMarks = 90
+
     var body: some View {
+        let samples = Self.thinned(self.samples)
         Chart {
             ForEach(samples, id: \.timestamp) { sample in
                 AreaMark(x: .value("Time", sample.timestamp), y: .value("Value", sample[keyPath: value]))
@@ -69,6 +73,13 @@ struct Sparkline: View {
     private var timeDomain: ClosedRange<Date> {
         let end = samples.last?.timestamp ?? .now
         return end.addingTimeInterval(-MetricsHistory.window)...end
+    }
+
+    /// Evenly spaced samples, always keeping the newest so the line ends on "now".
+    static func thinned(_ samples: [SystemMetrics]) -> [SystemMetrics] {
+        guard samples.count > maximumMarks else { return samples }
+        let stride = Double(samples.count - 1) / Double(maximumMarks - 1)
+        return (0..<maximumMarks).map { samples[Int((Double($0) * stride).rounded())] }
     }
 
     private var peak: Double {
