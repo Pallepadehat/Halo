@@ -71,16 +71,30 @@ struct HaloPadApp: App {
 
 struct RootView: View {
     @Environment(MacLink.self) private var link
+    /// The Mac has been out of reach for longer than a blip.
+    @State private var isMacAway = false
+
+    /// How long a lost Mac may take to come back before Halo says so: a Wi-Fi hiccup or a
+    /// sleeping Mac waking shouldn't flash a different screen.
+    static let awayGrace: Duration = .seconds(3)
 
     var body: some View {
         Group {
-            if link.needsPairing {
+            if link.needsPairing || isMacAway {
                 PairingView()
             } else {
                 DashboardView()
             }
         }
-        .animation(.halo, value: link.needsPairing)
+        .animation(.halo, value: link.needsPairing || isMacAway)
+        .task(id: link.status) {
+            guard case .searching = link.status else {
+                isMacAway = false
+                return
+            }
+            try? await Task.sleep(for: Self.awayGrace)
+            if !Task.isCancelled { isMacAway = true }
+        }
     }
 }
 

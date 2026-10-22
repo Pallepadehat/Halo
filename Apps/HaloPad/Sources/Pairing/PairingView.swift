@@ -3,6 +3,7 @@ import SwiftUI
 
 /// First run: find a Mac running Halo Helper, then check that both screens show the same code.
 /// The person confirms on both devices, so neither can be paired by someone else on the network.
+/// It's also where Halo waits when the paired Mac is out of reach, ready to pair another.
 struct PairingView: View {
     @Environment(MacLink.self) private var link
 
@@ -10,7 +11,7 @@ struct PairingView: View {
         ZStack {
             Backdrop()
             VStack(spacing: 44) {
-                Header(isForgotten: link.isForgottenByMac)
+                Header(isForgotten: link.isForgottenByMac, reconnectingTo: reconnectingTo)
                 content
                     .frame(maxWidth: 560)
                     .frame(minHeight: 260, alignment: .top)
@@ -21,13 +22,25 @@ struct PairingView: View {
         }
         .animation(.halo, value: link.pairing)
         .onAppear { link.beginPairing() }
+        // Back on the dashboard, stop looking for Macs to pair.
+        .onDisappear { link.cancelPairing() }
+    }
+
+    /// The paired Mac this iPad is waiting for, when it's simply out of reach.
+    private var reconnectingTo: String? {
+        guard case .searching(let mac) = link.status, !link.isForgottenByMac else { return nil }
+        return mac.name
     }
 
     @ViewBuilder
     private var content: some View {
         switch link.pairing {
         case .idle, .browsing([]):
-            SearchingForMacs()
+            if let mac = reconnectingTo {
+                Reconnecting(mac: mac)
+            } else {
+                SearchingForMacs()
+            }
         case .browsing(let macs):
             MacList(macs: macs)
         case .connecting(let mac):
@@ -61,6 +74,7 @@ private extension MacLink.PairingState {
 
 private struct Header: View {
     let isForgotten: Bool
+    let reconnectingTo: String?
 
     var body: some View {
         VStack(spacing: 18) {
@@ -70,7 +84,7 @@ private struct Header: View {
                 .clipShape(.rect(cornerRadius: 22, style: .continuous))
                 .shadow(color: .black.opacity(0.35), radius: 24, y: 10)
                 .accessibilityHidden(true)
-            Text(isForgotten ? "Pair Again" : "Pair with Your Mac")
+            Text(title)
                 .font(.system(size: 44, weight: .thin))
                 .foregroundStyle(.ink)
             if isForgotten {
@@ -81,9 +95,48 @@ private struct Header: View {
         }
         .multilineTextAlignment(.center)
     }
+
+    private var title: LocalizedStringKey {
+        if isForgotten { return "Pair Again" }
+        if let reconnectingTo { return "Reconnecting to \(reconnectingTo)" }
+        return "Pair with Your Mac"
+    }
+}
+
+/// The paired Mac went away. Halo keeps looking, and a Mac opening Pair iPad still shows up.
+private struct Reconnecting: View {
+    let mac: String
+    @State private var isShowingSteps = false
+
+    var body: some View {
+        VStack(spacing: 28) {
+            HStack(spacing: 10) {
+                ProgressView()
+                Text("Looking for \(mac)")
+            }
+            .font(.title3)
+            .foregroundStyle(.ink)
+
+            Text("Make sure your Mac is awake, on the same network, and running Halo Helper.")
+                .font(.body)
+                .multilineTextAlignment(.center)
+                .foregroundStyle(.inkSecondary)
+
+            if isShowingSteps {
+                SearchingForMacs(showsProgress: false)
+                    .transition(.opacity.combined(with: .move(edge: .top)))
+            } else {
+                Button("Pair a Different Mac") { withAnimation(.halo) { isShowingSteps = true } }
+                    .buttonStyle(.glass)
+                    .controlSize(.large)
+            }
+        }
+    }
 }
 
 private struct SearchingForMacs: View {
+    var showsProgress = true
+
     var body: some View {
         VStack(spacing: 28) {
             VStack(alignment: .leading, spacing: 18) {
@@ -95,12 +148,14 @@ private struct SearchingForMacs: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .glassEffect(.regular, in: .rect(cornerRadius: 28, style: .continuous))
 
-            HStack(spacing: 10) {
-                ProgressView()
-                Text("Looking for Macs nearby")
+            if showsProgress {
+                HStack(spacing: 10) {
+                    ProgressView()
+                    Text("Looking for Macs nearby")
+                }
+                .font(.subheadline)
+                .foregroundStyle(.inkSecondary)
             }
-            .font(.subheadline)
-            .foregroundStyle(.inkSecondary)
         }
     }
 }

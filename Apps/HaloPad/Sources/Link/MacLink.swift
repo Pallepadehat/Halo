@@ -291,7 +291,7 @@ extension MacLink {
         return link
     }
 
-    /// `-HaloDemoPairing searching|macs|code|waiting|forgotten` shows one step of pairing.
+    /// `-HaloDemoPairing searching|code|waiting|forgotten|reconnecting` shows one step of pairing.
     static func demoPairing(_ step: String) -> MacLink {
         let link = MacLink(
             identity: DeviceIdentity(id: UUID(), name: "Demo iPad"),
@@ -303,7 +303,11 @@ extension MacLink {
         case "code": link.pairing = .confirming(proposal)
         case "waiting": link.pairing = .waitingForMac(proposal)
         case "forgotten":
+            link.status = .searching(DemoData.mac)
             link.isForgottenByMac = true
+            link.pairing = .browsing([])
+        case "reconnecting":
+            link.status = .searching(DemoData.mac)
             link.pairing = .browsing([])
         default: link.pairing = .browsing([])
         }

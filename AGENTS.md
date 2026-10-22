@@ -80,7 +80,7 @@ Agent tools call `halo-hook <tool>` from their hook config. It relays stdin over
 
 ## iPad ⇄ Mac link
 
-- **Pairing** (`PairingSession`) is Bluetooth-style numeric comparison over X25519: the responder commits to its nonce first, both screens show a 6-digit code, and *both* people confirm. The iPad says "The Codes Match", then asks you to finish on the Mac. A fresh install forgets pairings the Keychain kept, and a Mac that refuses the handshake three times (`isForgottenByMac`) sends the iPad back to pairing. The pairing service (`_halo-pair._tcp`) is only advertised while the Mac's pairing window is open.
+- **Pairing** (`PairingSession`) is Bluetooth-style numeric comparison over X25519: the responder commits to its nonce first, both screens show a 6-digit code, and *both* people confirm. The iPad says "The Codes Match", then asks you to finish on the Mac. A fresh install forgets pairings the Keychain kept, and a Mac that refuses the handshake three times (`isForgottenByMac`) sends the iPad back to pairing. Losing the Mac for longer than `RootView.awayGrace` (3 s) also shows the pairing screen, as "Reconnecting to …", until it's back or another Mac is paired. The pairing service (`_halo-pair._tcp`) is only advertised while the Mac's pairing window is open.
 - **Paired links** (`_halo._tcp`) use TLS 1.2 `ECDHE_PSK_WITH_CHACHA20_POLY1305`, keyed by each pairing's 256-bit secret. Network.framework has no external-PSK TLS 1.3, so don't "upgrade" this without testing. Unpaired devices fail the handshake.
 - **Pairings** live in the Keychain (`KeychainPairedDeviceStore`), this device only. Never log or persist secrets anywhere else.
 - **Framing:** `NetworkChannel` sends length-prefixed JSON frames. Send through `MessageOutbox` from synchronous code so messages keep their order. Cancelling a reading task closes the channel.
@@ -140,7 +140,7 @@ The look is Apple-native and quiet. Match it in new work:
 
 ## Previewing on the iPad
 
-DEBUG builds accept `-HaloDemo [page index]`, which fills every widget with rendered `DemoData` (a wallpaper, artwork, icons, agents and more) and needs no Mac. It uses real pictures from `Documents/DemoAssets` when present. Add `-HaloDemoEditing` to open in edit mode, `-HaloDemoPairing searching|code|waiting|forgotten` for a step of pairing, `-HaloFrame 1210x834` to render at an exact landscape size (rotated, for a portrait simulator), and `-HaloDemoBrightness software|none` to preview non-Apple monitors. Use it for screenshots and design passes:
+DEBUG builds accept `-HaloDemo [page index]`, which fills every widget with rendered `DemoData` (a wallpaper, artwork, icons, agents and more) and needs no Mac. It uses real pictures from `Documents/DemoAssets` when present. Add `-HaloDemoEditing` to open in edit mode, `-HaloDemoPairing searching|code|waiting|forgotten|reconnecting` for a step of pairing, `-HaloFrame 1210x834` to render at an exact landscape size (rotated, for a portrait simulator), and `-HaloDemoBrightness software|none` to preview non-Apple monitors. Use it for screenshots and design passes:
 
 ```sh
 xcrun simctl launch booted dk.patrickjak.halo.pad -HaloDemo 2 -HaloDemoEditing
