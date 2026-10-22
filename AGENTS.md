@@ -95,6 +95,11 @@ DEBUG builds accept `-HaloDemo [mode]` (e.g. `-HaloDemo pulse`), which fills eve
 xcrun simctl launch booted dk.patrickjak.halo.pad -HaloDemo agents
 ```
 
+## Troubleshooting
+
+- **The iPad can't find the Mac / `Listener failed: -65555: NoAuth`.** Bonjour was refused by Local Network privacy. Every target must be signed by a real team (`DEVELOPMENT_TEAM` in `project.yml`): macOS ties the permission to the code signature, and ad-hoc builds are refused. Then allow *Halo Helper* under System Settings › Privacy & Security › Local Network, and *Halo* under the same pane on the iPad. Both apps detect this (`Error.isLocalNetworkDenied`) and link to Settings.
+- Both devices must be on the same network, or close enough for peer-to-peer Wi-Fi.
+
 ## Tech conventions
 
 - **Swift 6**, strict concurrency `complete`. No `@unchecked Sendable` or `nonisolated(unsafe)` without a comment explaining why.
