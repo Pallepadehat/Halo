@@ -32,6 +32,7 @@ targets:
     platform: iOS
     sources:
       - Apps/HaloPad/Sources
+      - Apps/HaloPad/Resources/Assets.xcassets
     dependencies:
       - package: HaloKit
         product: HaloCore
@@ -63,6 +64,7 @@ targets:
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: dk.patrickjak.halo.pad
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         PRODUCT_NAME: Halo
         TARGETED_DEVICE_FAMILY: "2"
         GENERATE_INFOPLIST_FILE: true
@@ -72,6 +74,7 @@ targets:
     platform: macOS
     sources:
       - Apps/HaloMac/Sources
+      - Apps/HaloMac/Resources/Assets.xcassets
     dependencies:
       - package: HaloKit
         product: HaloCore
@@ -127,6 +130,7 @@ targets:
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: dk.patrickjak.halo.mac
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         PRODUCT_NAME: Halo Helper
         ENABLE_HARDENED_RUNTIME: true
         # Never sandboxed, and don't add App Sandbox under Signing & Capabilities: it blocks
