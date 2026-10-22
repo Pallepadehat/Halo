@@ -257,7 +257,8 @@ The architecture, the design language and the rules that keep Halo fast and safe
 New widgets, new Deck actions, other agent tools and polish are all very welcome. See **[CONTRIBUTING.md](CONTRIBUTING.md)**.
 
 - The Xcode project is generated from `project.yml` with XcodeGen. Run `xcodegen generate` after adding files.
-- Try any widget without a Mac: DEBUG builds of the iPad app take `-HaloDemo <page>`, plus `-HaloDemoEmpty`, `-HaloDemoEditing`, `-HaloDemoGallery` and `-HaloFrame 1366x1024`.
+- Try any widget without a Mac: DEBUG builds of the iPad app take `-HaloDemo <page>`, plus `-HaloDemoEmpty`, `-HaloDemoEditing`, `-HaloDemoGallery` and `-HaloFrame 1366x1024`. `-HaloDemoPairing searching|code|waiting|forgotten` shows a step of pairing.
+- The screenshots are the real app with real icons, wallpaper and artwork from your Mac: `./scripts/make-screenshots.sh` retakes them on a booted iPad simulator.
 - The icon and the banner are drawn in code: `./scripts/make-icons.sh` and `./scripts/make-banner.sh`.
 
 ### Making a release

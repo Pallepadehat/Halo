@@ -80,7 +80,7 @@ Agent tools call `halo-hook <tool>` from their hook config. It relays stdin over
 
 ## iPad ⇄ Mac link
 
-- **Pairing** (`PairingSession`) is Bluetooth-style numeric comparison over X25519: the responder commits to its nonce first, both screens show a 6-digit code, and *both* people confirm. The pairing service (`_halo-pair._tcp`) is only advertised while the Mac's pairing window is open.
+- **Pairing** (`PairingSession`) is Bluetooth-style numeric comparison over X25519: the responder commits to its nonce first, both screens show a 6-digit code, and *both* people confirm. The iPad says "The Codes Match", then asks you to finish on the Mac. A fresh install forgets pairings the Keychain kept, and a Mac that refuses the handshake three times (`isForgottenByMac`) sends the iPad back to pairing. The pairing service (`_halo-pair._tcp`) is only advertised while the Mac's pairing window is open.
 - **Paired links** (`_halo._tcp`) use TLS 1.2 `ECDHE_PSK_WITH_CHACHA20_POLY1305`, keyed by each pairing's 256-bit secret. Network.framework has no external-PSK TLS 1.3, so don't "upgrade" this without testing. Unpaired devices fail the handshake.
 - **Pairings** live in the Keychain (`KeychainPairedDeviceStore`), this device only. Never log or persist secrets anywhere else.
 - **Framing:** `NetworkChannel` sends length-prefixed JSON frames. Send through `MessageOutbox` from synchronous code so messages keep their order. Cancelling a reading task closes the channel.
@@ -128,7 +128,8 @@ The look is Apple-native and quiet. Match it in new work:
 
 - The Mac helper updates itself with **Sparkle**: `Updates` (Release builds only), `SUFeedURL` pointing at the latest GitHub release's `appcast.xml`, and EdDSA-signed appcasts (`SUPublicEDKey` in `project.yml`).
 - `scripts/build.sh` builds the helper (`HALO_SIGN=developer-id` re-signs Sparkle's helpers and `halo-hook`), `make-dmg.sh` packs and notarizes it, `release.sh` publishes the GitHub release with the appcast, and `install.sh` is the one-line installer. `CURRENT_PROJECT_VERSION` follows `MARKETING_VERSION`, because Sparkle compares build numbers.
-- The icon (`scripts/icon/AppIcon.swift`) and the banner (`scripts/banner/Banner.swift`) are drawn in code. Regenerate them with `make-icons.sh` and `make-banner.sh`. README screenshots come from `-HaloDemo <page> -HaloFrame 1366x1024`, rotated and saved as JPEG in `docs/images`.
+- The icon (`scripts/icon/AppIcon.swift`: an iPad at night with a halo of light round the inside of its screen, not a ring) and the banner (`scripts/banner/Banner.swift`) are drawn in code. Regenerate them with `make-icons.sh` and `make-banner.sh`.
+- **README screenshots** come from `make-screenshots.sh`: it exports real icons, a wallpaper and Music's artwork from the Mac (`scripts/demo/DemoAssets.swift`) into the simulator app's `Documents/DemoAssets`, then shoots each `-HaloDemo <page> -HaloFrame 1366x1024`. Never ship drawn stand-in icons in marketing images.
 - **Voice:** "Halo. Your Mac, at your side." Plain, calm, second person, like an Apple product page. No exclamation marks in the UI.
 
 ## Pulse
@@ -139,7 +140,7 @@ The look is Apple-native and quiet. Match it in new work:
 
 ## Previewing on the iPad
 
-DEBUG builds accept `-HaloDemo [page index]`, which fills every widget with rendered `DemoData` (a wallpaper, artwork, icons, agents and more) and needs no Mac. Add `-HaloDemoEditing` to open in edit mode, `-HaloFrame 1210x834` to render at an exact landscape size (rotated, for a portrait simulator), and `-HaloDemoBrightness software|none` to preview non-Apple monitors. Use it for screenshots and design passes:
+DEBUG builds accept `-HaloDemo [page index]`, which fills every widget with rendered `DemoData` (a wallpaper, artwork, icons, agents and more) and needs no Mac. It uses real pictures from `Documents/DemoAssets` when present. Add `-HaloDemoEditing` to open in edit mode, `-HaloDemoPairing searching|code|waiting|forgotten` for a step of pairing, `-HaloFrame 1210x834` to render at an exact landscape size (rotated, for a portrait simulator), and `-HaloDemoBrightness software|none` to preview non-Apple monitors. Use it for screenshots and design passes:
 
 ```sh
 xcrun simctl launch booted dk.patrickjak.halo.pad -HaloDemo 2 -HaloDemoEditing
